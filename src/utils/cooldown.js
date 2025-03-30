@@ -1,1 +1,0 @@
-// Utilitário para gerenciar cooldowns

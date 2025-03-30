@@ -1,12 +1,6 @@
 // ranking.js - versão corrigida
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { 
-  getDatabase, 
-  ref, 
-  get,
-  query,
-  orderByChild
-} from 'firebase/database';
+import { getDatabase, ref, get, query, orderByChild } from "firebase/database";
 
 export const data = new SlashCommandBuilder()
   .setName("ranking")
@@ -29,10 +23,10 @@ export async function execute(interaction) {
 
     // Obter todos os usuários e ordenar manualmente
     const database = getDatabase();
-    const usersRef = ref(database, 'users');
-    
+    const usersRef = ref(database, "users");
+
     const snapshot = await get(usersRef);
-    
+
     if (!snapshot.exists()) {
       return interaction.editReply("Não há usuários registrados no sistema.");
     }
@@ -43,20 +37,22 @@ export async function execute(interaction) {
       const userData = childSnapshot.val();
       users.push({
         userId: userData.userId || childSnapshot.key,
-        saldo: userData.saldo || 0
+        saldo: userData.saldo || 0,
       });
     });
-    
+
     // Ordenar por saldo (decrescente)
     users.sort((a, b) => b.saldo - a.saldo);
-    
+
     const totalUsuarios = users.length;
     const totalPaginas = Math.ceil(totalUsuarios / itensPorPagina);
-    
+
     if (pagina > totalPaginas) {
-      return interaction.editReply(`Página inválida. O ranking possui apenas ${totalPaginas} página(s).`);
+      return interaction.editReply(
+        `Página inválida. O ranking possui apenas ${totalPaginas} página(s).`
+      );
     }
-    
+
     // Aplicar paginação
     const startIndex = (pagina - 1) * itensPorPagina;
     const endIndex = Math.min(startIndex + itensPorPagina, totalUsuarios);
@@ -88,17 +84,23 @@ export async function execute(interaction) {
         if (position === 2) medal = "🥈 ";
         if (position === 3) medal = "🥉 ";
 
-        return `${medal}**${position}.** ${displayName} - R$${user.saldo.toFixed(2)}`;
+        return `${medal}**${position}.** ${displayName} - R$${user.saldo.toFixed(
+          2
+        )}`;
       })
     );
 
     // Encontrar a posição do usuário atual
-    const userIndex = users.findIndex(user => user.userId === interaction.user.id);
+    const userIndex = users.findIndex(
+      (user) => user.userId === interaction.user.id
+    );
     let posicaoTexto = "";
-    
+
     if (userIndex !== -1) {
       const userSaldo = users[userIndex].saldo;
-      posicaoTexto = `\n\nSua posição: **#${userIndex + 1}** - R$${userSaldo.toFixed(2)}`;
+      posicaoTexto = `\n\nSua posição: **#${
+        userIndex + 1
+      }** - R$${userSaldo.toFixed(2)}`;
     }
 
     // Criar embed
@@ -107,7 +109,9 @@ export async function execute(interaction) {
       .setTitle("💰 Ranking de Riqueza 💰")
       .setDescription(`${formattedRanking.join("\n")}${posicaoTexto}`)
       .setFooter({
-        text: `Página ${pagina} de ${totalPaginas || 1} • Total de ${totalUsuarios} usuários`
+        text: `Página ${pagina} de ${
+          totalPaginas || 1
+        } • Total de ${totalUsuarios} usuários`,
       })
       .setTimestamp();
 

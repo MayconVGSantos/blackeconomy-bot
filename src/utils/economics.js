@@ -1,5 +1,5 @@
 // economics.js
-import config from '../../config/config.js';
+import config from "../../config/config.js";
 
 /**
  * Utilitários para cálculos econômicos do bot
@@ -24,11 +24,11 @@ class EconomicsUtils {
    */
   calcularValorTrabalhar() {
     const { min, max } = config.economia.trabalhar;
-    
+
     // Implementar uma distribuição mais ponderada para evitar extremos frequentes
     const random = Math.random();
     const weightedRandom = Math.pow(random, 1.2); // Distribuição com leve tendência a valores mais baixos
-    
+
     return Math.floor(min + weightedRandom * (max - min));
   }
 
@@ -38,30 +38,31 @@ class EconomicsUtils {
    */
   calcularValorSeduzir() {
     const { min, max, perda } = config.economia.seduzir;
-    
+
     // 50% de chance de ganhar
     const ganhou = Math.random() >= 0.5;
-    
+
     // Calcular valor base que seria ganho
     const valorBase = this.gerarValorAleatorio(min, max);
-    
+
     if (ganhou) {
       return {
         valor: valorBase,
-        ganhou: true
+        ganhou: true,
       };
     } else {
       // Perder uma porcentagem do que teria ganho
-      const porcentagemPerda = this.gerarValorAleatorio(
-        Math.floor(perda.min * 100),
-        Math.floor(perda.max * 100)
-      ) / 100;
-      
+      const porcentagemPerda =
+        this.gerarValorAleatorio(
+          Math.floor(perda.min * 100),
+          Math.floor(perda.max * 100)
+        ) / 100;
+
       const valorPerdido = Math.floor(valorBase * porcentagemPerda);
-      
+
       return {
         valor: -valorPerdido,
-        ganhou: false
+        ganhou: false,
       };
     }
   }
@@ -72,30 +73,31 @@ class EconomicsUtils {
    */
   calcularValorCrime() {
     const { min, max, perda } = config.economia.crime;
-    
+
     // 50% de chance de ganhar
     const ganhou = Math.random() >= 0.5;
-    
+
     // Calcular valor base que seria ganho
     const valorBase = this.gerarValorAleatorio(min, max);
-    
+
     if (ganhou) {
       return {
         valor: valorBase,
-        ganhou: true
+        ganhou: true,
       };
     } else {
       // Perder uma porcentagem do que teria ganho
-      const porcentagemPerda = this.gerarValorAleatorio(
-        Math.floor(perda.min * 100),
-        Math.floor(perda.max * 100)
-      ) / 100;
-      
+      const porcentagemPerda =
+        this.gerarValorAleatorio(
+          Math.floor(perda.min * 100),
+          Math.floor(perda.max * 100)
+        ) / 100;
+
       const valorPerdido = Math.floor(valorBase * porcentagemPerda);
-      
+
       return {
         valor: -valorPerdido,
-        ganhou: false
+        ganhou: false,
       };
     }
   }
@@ -116,11 +118,11 @@ class EconomicsUtils {
    */
   formatarTempoRestante(tempoRestanteMs) {
     const segundos = Math.ceil(tempoRestanteMs / 1000);
-    
+
     if (segundos < 60) {
       return `${segundos} segundos`;
     }
-    
+
     const minutos = Math.ceil(segundos / 60);
     return `${minutos} minutos`;
   }
@@ -134,36 +136,36 @@ class EconomicsUtils {
   async getEffectMultiplier(userId, effectType) {
     try {
       // Importar somente para este escopo para evitar importação circular
-      const { getDatabase, ref, get } = await import('firebase/database');
+      const { getDatabase, ref, get } = await import("firebase/database");
       const database = getDatabase();
-      
+
       const effectsRef = ref(database, `users/${userId}/activeEffects`);
       const snapshot = await get(effectsRef);
-      
+
       if (!snapshot.exists()) {
         return 1; // Sem multiplicador
       }
-      
+
       const effects = snapshot.val();
       const now = Date.now();
-      
+
       // Verificar efeito específico
       if (effects[effectType] && effects[effectType].expiration > now) {
         return effects[effectType].multiplier || 1;
       }
-      
+
       // Verificar efeito VIP (afeta todos os comandos)
       if (effects.vip_status && effects.vip_status.expiration > now) {
-        if (effectType === 'cooldown') {
+        if (effectType === "cooldown") {
           return 1 - (effects.vip_status.cooldownReduction || 0);
         } else {
           return 1 + (effects.vip_status.incomeBoost || 0);
         }
       }
-      
+
       return 1; // Sem multiplicador
     } catch (error) {
-      console.error('Erro ao verificar efeitos ativos:', error);
+      console.error("Erro ao verificar efeitos ativos:", error);
       return 1; // Em caso de erro, sem multiplicador
     }
   }
@@ -175,15 +177,15 @@ class EconomicsUtils {
    */
   async calcularValorTrabalharComEfeitos(userId) {
     const { min, max } = config.economia.trabalhar;
-    
+
     const random = Math.random();
     const weightedRandom = Math.pow(random, 1.2);
-    
+
     const baseValue = Math.floor(min + weightedRandom * (max - min));
-    
+
     // Aplicar multiplicador de efeitos ativos
-    const multiplier = await this.getEffectMultiplier(userId, 'boost_work');
-    
+    const multiplier = await this.getEffectMultiplier(userId, "boost_work");
+
     return Math.floor(baseValue * multiplier);
   }
 
@@ -194,42 +196,46 @@ class EconomicsUtils {
    */
   async calcularValorCrimeComEfeitos(userId) {
     const { min, max, perda } = config.economia.crime;
-    
+
     // Aplicar multiplicador para chance de sucesso
-    const effectMultiplier = await this.getEffectMultiplier(userId, 'boost_crime');
-    
+    const effectMultiplier = await this.getEffectMultiplier(
+      userId,
+      "boost_crime"
+    );
+
     // Ajustar a chance de ganhar com base no multiplicador (limitado entre 25% e 75%)
     let chanceGanhar = 0.5;
     if (effectMultiplier > 1) {
       chanceGanhar = Math.min(0.75, 0.5 + (effectMultiplier - 1) * 0.5);
     }
-    
+
     // 50% de chance de ganhar (ou modificado pelo efeito)
     const ganhou = Math.random() < chanceGanhar;
-    
+
     // Calcular valor base que seria ganho
     const valorBase = this.gerarValorAleatorio(min, max);
-    
+
     if (ganhou) {
       // Aplicar multiplicador de efeitos ativos
       const valorComEfeito = Math.floor(valorBase * effectMultiplier);
-      
+
       return {
         valor: valorComEfeito,
-        ganhou: true
+        ganhou: true,
       };
     } else {
       // Perder uma porcentagem do que teria ganho
-      const porcentagemPerda = this.gerarValorAleatorio(
-        Math.floor(perda.min * 100),
-        Math.floor(perda.max * 100)
-      ) / 100;
-      
+      const porcentagemPerda =
+        this.gerarValorAleatorio(
+          Math.floor(perda.min * 100),
+          Math.floor(perda.max * 100)
+        ) / 100;
+
       const valorPerdido = Math.floor(valorBase * porcentagemPerda);
-      
+
       return {
         valor: -valorPerdido,
-        ganhou: false
+        ganhou: false,
       };
     }
   }
@@ -241,36 +247,40 @@ class EconomicsUtils {
    */
   async calcularValorSeduzirComEfeitos(userId) {
     const { min, max, perda } = config.economia.seduzir;
-    
+
     // O VIP pode afetar todos os comandos
-    const effectMultiplier = await this.getEffectMultiplier(userId, 'vip_status');
-    
+    const effectMultiplier = await this.getEffectMultiplier(
+      userId,
+      "vip_status"
+    );
+
     // 50% de chance de ganhar (VIP não afeta chance, só o valor)
     const ganhou = Math.random() >= 0.5;
-    
+
     // Calcular valor base que seria ganho
     const valorBase = this.gerarValorAleatorio(min, max);
-    
+
     if (ganhou) {
       // Aplicar multiplicador de efeitos ativos (VIP)
       const valorComEfeito = Math.floor(valorBase * effectMultiplier);
-      
+
       return {
         valor: valorComEfeito,
-        ganhou: true
+        ganhou: true,
       };
     } else {
       // Perder uma porcentagem do que teria ganho
-      const porcentagemPerda = this.gerarValorAleatorio(
-        Math.floor(perda.min * 100),
-        Math.floor(perda.max * 100)
-      ) / 100;
-      
+      const porcentagemPerda =
+        this.gerarValorAleatorio(
+          Math.floor(perda.min * 100),
+          Math.floor(perda.max * 100)
+        ) / 100;
+
       const valorPerdido = Math.floor(valorBase * porcentagemPerda);
-      
+
       return {
         valor: -valorPerdido,
-        ganhou: false
+        ganhou: false,
       };
     }
   }
