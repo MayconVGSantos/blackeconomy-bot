@@ -4,6 +4,10 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readdirSync } from 'fs';
 import config from '../config/config.js';
+import dotenv from 'dotenv';
+dotenv.config();
+
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
