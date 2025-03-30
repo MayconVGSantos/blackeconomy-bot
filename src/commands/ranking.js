@@ -1,6 +1,12 @@
-// ranking.js
+// ranking.js - versão corrigida
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import firebaseService from "../services/firebase.js";
+import { 
+  getDatabase, 
+  ref, 
+  get,
+  query,
+  orderByChild
+} from 'firebase/database';
 
 export const data = new SlashCommandBuilder()
   .setName("ranking")
@@ -21,12 +27,42 @@ export async function execute(interaction) {
     const pagina = interaction.options.getInteger("pagina") || 1;
     const itensPorPagina = 10;
 
-    // Obter o ranking do Firebase
-    const ranking = await firebaseService.getTopUsers(itensPorPagina, pagina);
-    const totalUsuarios = await firebaseService.getTotalUsersCount();
-    const totalPaginas = Math.ceil(totalUsuarios / itensPorPagina);
+    // Obter todos os usuários e ordenar manualmente
+    const database = getDatabase();
+    const usersRef = ref(database, 'users');
+    
+    const snapshot = await get(usersRef);
+    
+    if (!snapshot.exists()) {
+      return interaction.editReply("Não há usuários registrados no sistema.");
+    }
 
-    if (ranking.length === 0) {
+    // Converter em array e ordenar por saldo (decrescente)
+    let users = [];
+    snapshot.forEach((childSnapshot) => {
+      const userData = childSnapshot.val();
+      users.push({
+        userId: userData.userId || childSnapshot.key,
+        saldo: userData.saldo || 0
+      });
+    });
+    
+    // Ordenar por saldo (decrescente)
+    users.sort((a, b) => b.saldo - a.saldo);
+    
+    const totalUsuarios = users.length;
+    const totalPaginas = Math.ceil(totalUsuarios / itensPorPagina);
+    
+    if (pagina > totalPaginas) {
+      return interaction.editReply(`Página inválida. O ranking possui apenas ${totalPaginas} página(s).`);
+    }
+    
+    // Aplicar paginação
+    const startIndex = (pagina - 1) * itensPorPagina;
+    const endIndex = Math.min(startIndex + itensPorPagina, totalUsuarios);
+    const pageUsers = users.slice(startIndex, endIndex);
+
+    if (pageUsers.length === 0) {
       return interaction.editReply(
         "Nenhum usuário encontrado para esta página do ranking."
       );
@@ -34,17 +70,17 @@ export async function execute(interaction) {
 
     // Resolver nomes de usuários
     const formattedRanking = await Promise.all(
-      ranking.map(async (user, index) => {
+      pageUsers.map(async (user, index) => {
         let displayName;
         try {
           const discordUser = await interaction.client.users.fetch(user.userId);
           displayName = discordUser.username;
         } catch (error) {
-          displayName = `Usuário #${user.userId}`;
+          displayName = `Usuário #${user.userId.substring(0, 6)}...`;
         }
 
         // Calcular a posição real no ranking
-        const position = (pagina - 1) * itensPorPagina + index + 1;
+        const position = startIndex + index + 1;
 
         // Adicionar medalhas para os 3 primeiros do ranking geral
         let medal = "";
@@ -52,21 +88,17 @@ export async function execute(interaction) {
         if (position === 2) medal = "🥈 ";
         if (position === 3) medal = "🥉 ";
 
-        return `${medal}**${position}.** ${displayName} - R$${user.saldo.toFixed(
-          2
-        )}`;
+        return `${medal}**${position}.** ${displayName} - R$${user.saldo.toFixed(2)}`;
       })
     );
 
-    // Destacar o usuário atual no ranking, se estiver presente
-    const posicaoUsuarioAtual = await firebaseService.getUserRanking(
-      interaction.user.id
-    );
+    // Encontrar a posição do usuário atual
+    const userIndex = users.findIndex(user => user.userId === interaction.user.id);
     let posicaoTexto = "";
-    if (posicaoUsuarioAtual) {
-      posicaoTexto = `\n\nSua posição: **#${
-        posicaoUsuarioAtual.position
-      }** - R$${posicaoUsuarioAtual.saldo.toFixed(2)}`;
+    
+    if (userIndex !== -1) {
+      const userSaldo = users[userIndex].saldo;
+      posicaoTexto = `\n\nSua posição: **#${userIndex + 1}** - R$${userSaldo.toFixed(2)}`;
     }
 
     // Criar embed
@@ -75,9 +107,7 @@ export async function execute(interaction) {
       .setTitle("💰 Ranking de Riqueza 💰")
       .setDescription(`${formattedRanking.join("\n")}${posicaoTexto}`)
       .setFooter({
-        text: `Página ${pagina} de ${totalPaginas || 1} • Total de ${
-          ranking.length
-        } usuários`,
+        text: `Página ${pagina} de ${totalPaginas || 1} • Total de ${totalUsuarios} usuários`
       })
       .setTimestamp();
 
