@@ -1,5 +1,6 @@
-// embed.js
+// embed.js - Com formatação brasileira
 import { EmbedBuilder } from "discord.js";
+import { formatarDinheiro } from "./format.js";
 
 /**
  * Utilitários para criação de embeds do Discord
@@ -57,12 +58,12 @@ class EmbedUtils {
       .addFields(
         {
           name: "💰 Valor",
-          value: `${ganhou ? "+" : "-"}R$${Math.abs(valor).toFixed(2)}`,
+          value: `${ganhou ? "+" : "-"}${formatarDinheiro(Math.abs(valor))}`,
           inline: true,
         },
         {
           name: "💰 Novo Saldo",
-          value: `R$${novoSaldo.toFixed(2)}`,
+          value: formatarDinheiro(novoSaldo),
           inline: true,
         }
       )
@@ -130,7 +131,7 @@ class EmbedUtils {
       .setThumbnail(avatarURL)
       .addFields({
         name: "💰 Saldo",
-        value: `R$${saldo.toFixed(2)}`,
+        value: formatarDinheiro(saldo),
         inline: true,
       })
       .setFooter({ text: `Perfil de ${usuario}` })
@@ -164,25 +165,25 @@ class EmbedUtils {
       .setColor(0x00ff00) // Verde
       .setTitle("💸 PIX Realizado com Sucesso")
       .setDescription(
-        `**${remetente}** transferiu R$${valor.toFixed(
-          2
+        `**${remetente}** transferiu ${formatarDinheiro(
+          valor
         )} para **${destinatario}**`
       )
       .setThumbnail(destinatarioAvatar)
       .addFields(
         {
           name: "💰 Valor Transferido",
-          value: `R$${valor.toFixed(2)}`,
+          value: formatarDinheiro(valor),
           inline: true,
         },
         {
           name: "📤 Saldo do Remetente",
-          value: `R$${saldoRemetente.toFixed(2)}`,
+          value: formatarDinheiro(saldoRemetente),
           inline: true,
         },
         {
           name: "📥 Saldo do Destinatário",
-          value: `R$${saldoDestinatario.toFixed(2)}`,
+          value: formatarDinheiro(saldoDestinatario),
           inline: true,
         },
         {
@@ -230,17 +231,17 @@ class EmbedUtils {
       embed.addFields(
         {
           name: "💰 Valor Roubado",
-          value: `R$${valor.toFixed(2)}`,
+          value: formatarDinheiro(valor),
           inline: true,
         },
         {
           name: "📤 Seu Novo Saldo",
-          value: `R$${novoSaldoLadrao.toFixed(2)}`,
+          value: formatarDinheiro(novoSaldoLadrao),
           inline: true,
         },
         {
           name: "📥 Saldo da Vítima",
-          value: `R$${novoSaldoVitima.toFixed(2)}`,
+          value: formatarDinheiro(novoSaldoVitima),
           inline: true,
         }
       );
@@ -248,12 +249,12 @@ class EmbedUtils {
       embed.addFields(
         {
           name: "💰 Valor da Multa",
-          value: `R$${valor.toFixed(2)}`,
+          value: formatarDinheiro(valor),
           inline: true,
         },
         {
           name: "📉 Seu Novo Saldo",
-          value: `R$${novoSaldoLadrao.toFixed(2)}`,
+          value: formatarDinheiro(novoSaldoLadrao),
           inline: true,
         }
       );

@@ -1,4 +1,4 @@
-// loja.js
+// loja.js - Com formatação brasileira
 import {
   SlashCommandBuilder,
   ActionRowBuilder,
@@ -12,6 +12,7 @@ import firebaseService from "../services/firebase.js";
 import storeItemsService from "../services/store-items.js";
 import inventoryService from "../services/inventory.js";
 import embedUtils from "../utils/embed.js";
+import { formatarDinheiro } from "../utils/format.js";
 
 export const data = new SlashCommandBuilder()
   .setName("loja")
@@ -107,7 +108,7 @@ async function showMainMenu(interaction, userId) {
     )
     .setThumbnail("https://i.imgur.com/XwrZmS0.png") // Imagem representativa da loja
     .addFields(
-      { name: "💰 Seu Saldo", value: `R$${saldo.toFixed(2)}`, inline: true },
+      { name: "💰 Seu Saldo", value: formatarDinheiro(saldo), inline: true },
       {
         name: "📋 Categorias Disponíveis",
         value: categories
@@ -213,9 +214,9 @@ async function showCategoryItems(
   // Criar descrição dos itens
   const itemsDescription = items
     .map((item, index) => {
-      return `**${index + 1}. ${item.icon} ${item.name}**
- Preço: R${item.price.toFixed(2)}
- ${item.description}`;
+      return `**${index + 1}. ${item.icon} ${
+        item.name
+      }**\nPreço: ${formatarDinheiro(item.price)}\n${item.description}`;
     })
     .join("\n\n");
 
@@ -230,7 +231,7 @@ async function showCategoryItems(
     .setDescription(itemsDescription)
     .addFields({
       name: "💰 Seu Saldo",
-      value: `R${saldo.toFixed(2)}`,
+      value: formatarDinheiro(saldo),
       inline: true,
     })
     .setFooter({
@@ -392,9 +393,9 @@ async function buyItem(interaction, userId, itemId, buttonInteraction) {
       const embedErro = embedUtils.criarEmbedErro({
         usuario: interaction.user.username,
         titulo: "Saldo Insuficiente",
-        mensagem: `Você tem apenas R${saldo.toFixed(
-          2
-        )}, mas o item custa R${item.price.toFixed(2)}.`,
+        mensagem: `Você tem apenas ${formatarDinheiro(
+          saldo
+        )}, mas o item custa ${formatarDinheiro(item.price)}.`,
       });
 
       await buttonInteraction.followUp({
@@ -419,13 +420,13 @@ async function buyItem(interaction, userId, itemId, buttonInteraction) {
       .setColor(0x00ff00) // Verde
       .setTitle("✅ Compra Realizada com Sucesso!")
       .setDescription(
-        `Você comprou **${item.icon} ${item.name}** por **R${item.price.toFixed(
-          2
+        `Você comprou **${item.icon} ${item.name}** por **${formatarDinheiro(
+          item.price
         )}**.`
       )
       .addFields({
         name: "💰 Novo Saldo",
-        value: `R${novoSaldo.toFixed(2)}`,
+        value: formatarDinheiro(novoSaldo),
         inline: true,
       })
       .setFooter({ text: `Comprado por ${interaction.user.username}` })

@@ -1,4 +1,4 @@
-// perfil.js - Versão simplificada
+// perfil.js - Com formatação brasileira de moeda
 import {
   SlashCommandBuilder,
   EmbedBuilder,
@@ -9,6 +9,7 @@ import {
 import firebaseService from "../services/firebase.js";
 import inventoryService from "../services/inventory.js";
 import embedUtils from "../utils/embed.js";
+import { formatarDinheiro } from "../utils/format.js";
 
 export const data = new SlashCommandBuilder()
   .setName("perfil")
@@ -59,7 +60,7 @@ export async function execute(interaction) {
       .addFields(
         {
           name: "💰 Patrimônio",
-          value: `R$${userData.saldo.toFixed(2)}`,
+          value: formatarDinheiro(userData.saldo),
           inline: true,
         },
         {

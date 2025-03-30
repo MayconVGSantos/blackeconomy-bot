@@ -1,8 +1,9 @@
-// trocar-fichas.js
+// trocar-fichas.js - Com formatação brasileira
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import inventoryService from "../services/inventory.js";
 import casinoService from "../services/casino.js";
 import embedUtils from "../utils/embed.js";
+import { formatarDinheiro } from "../utils/format.js";
 
 export const data = new SlashCommandBuilder()
   .setName("trocar-fichas")
@@ -58,19 +59,19 @@ export async function execute(interaction) {
       .setColor(0x00ff00) // Verde
       .setTitle("💱 Fichas Trocadas com Sucesso")
       .setDescription(
-        `Você trocou **${quantidade} fichas** por **R$${resultado.amount.toFixed(
-          2
+        `Você trocou **${quantidade} fichas** por **${formatarDinheiro(
+          resultado.amount
         )}**.`
       )
       .addFields(
         {
           name: "📊 Taxa de Conversão",
-          value: `1 ficha = R$10.00`,
+          value: `1 ficha = ${formatarDinheiro(10)}`,
           inline: true,
         },
         {
           name: "💸 Taxa Cobrada",
-          value: `R$${resultado.taxa.toFixed(2)} (10%)`,
+          value: `${formatarDinheiro(resultado.taxa)} (10%)`,
           inline: true,
         },
         {
@@ -80,7 +81,7 @@ export async function execute(interaction) {
         },
         {
           name: "💰 Novo Saldo",
-          value: `R$${resultado.newBalance.toFixed(2)}`,
+          value: formatarDinheiro(resultado.newBalance),
           inline: true,
         }
       )

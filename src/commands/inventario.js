@@ -1,4 +1,4 @@
-// inventario.js - Versão reestruturada e simplificada
+// inventario.js - Com formatação brasileira
 import {
   SlashCommandBuilder,
   EmbedBuilder,
@@ -8,6 +8,7 @@ import {
 } from "discord.js";
 import inventoryService from "../services/inventory.js";
 import embedUtils from "../utils/embed.js";
+import { formatarDinheiro } from "../utils/format.js";
 
 export const data = new SlashCommandBuilder()
   .setName("inventario")
@@ -77,7 +78,7 @@ export async function execute(interaction) {
     // Adicionar valor estimado
     embed.addFields({
       name: "💸 Valor Estimado",
-      value: `R$${(casinoChips * 10).toFixed(2)}`,
+      value: formatarDinheiro(casinoChips * 10),
       inline: true,
     });
 
