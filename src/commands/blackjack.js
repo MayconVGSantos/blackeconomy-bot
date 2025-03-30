@@ -658,8 +658,8 @@ async function handlePlayerStand(gameState, i, collector, username, aposta, user
       }).catch(console.error);
     }
   });
-}Interaction);
-    } else if (interaction.customId === 'blackjack_double') {
+}Interaction;
+     if (interaction.customId === 'blackjack_double') {
       await interaction.deferUpdate();
       
       // Criar um novo comando de interação com aposta dobrada
@@ -684,7 +684,7 @@ async function handlePlayerStand(gameState, i, collector, username, aposta, user
     }
     
     newCollector.stop();
-  });
+  ;
   
   newCollector.on('end', async (collected, reason) => {
     if (reason === 'time') {
@@ -700,7 +700,6 @@ async function handlePlayerStand(gameState, i, collector, username, aposta, user
       }).catch(console.error);
     }
   });
-}
 
 /**
  * Trata a ação do jogador se render
