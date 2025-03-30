@@ -658,48 +658,7 @@ async function handlePlayerStand(gameState, i, collector, username, aposta, user
       }).catch(console.error);
     }
   });
-}Interaction;
-     if (interaction.customId === 'blackjack_double') {
-      await interaction.deferUpdate();
-      
-      // Criar um novo comando de interação com aposta dobrada
-      const newCommand = {
-        options: new Map()
-      };
-      
-      newCommand.options.getInteger = (name) => {
-        if (name === 'aposta') return aposta * 2;
-        return null;
-      };
-      
-      // Executar novamente com o mesmo contexto
-      const originalInteraction = {
-        user: { id: userId, username },
-        deferReply: async () => {},
-        editReply: interaction.editReply.bind(interaction),
-        options: newCommand.options
-      };
-      
-      await execute(originalInteraction);
-    }
-    
-    newCollector.stop();
-  ;
-  
-  newCollector.on('end', async (collected, reason) => {
-    if (reason === 'time') {
-      // Desativar os botões após o tempo limite
-      const disabledRow = new ActionRowBuilder()
-        .addComponents(
-          ButtonBuilder.from(row.components[0]).setDisabled(true),
-          ButtonBuilder.from(row.components[1]).setDisabled(true)
-        );
-      
-      await i.editReply({
-        components: [disabledRow]
-      }).catch(console.error);
-    }
-  });
+}
 
 /**
  * Trata a ação do jogador se render
