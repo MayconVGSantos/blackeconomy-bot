@@ -1,271 +1,278 @@
-// src/services/firebase.js
-import { initializeApp } from 'firebase/app';
+// firebase.js
 import { 
   getDatabase, 
   ref, 
   set, 
   get, 
-  update, 
-  child,
-  query,
-  orderByChild,
-  limitToLast
+  update,
+  increment 
 } from 'firebase/database';
+import { initializeApp } from 'firebase/app';
+import config from '../../config/config.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 // Configuração do Firebase
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY || "AIzaSyCe_5sZfPnyByoB-gI7ebKbaS8yy7cawEg",
-  authDomain: `${process.env.FIREBASE_PROJECT_ID || "blackeconomy-874ac"}.firebaseapp.com`,
-  projectId: process.env.FIREBASE_PROJECT_ID || "blackeconomy-874ac",
-  storageBucket: `${process.env.FIREBASE_PROJECT_ID || "blackeconomy-874ac"}.firebasestorage.app`,
-  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "394363116218",
-  appId: process.env.FIREBASE_APP_ID || "1:394363116218:web:9fff42705eaef4f5800083",
-  databaseURL: process.env.FIREBASE_DATABASE_URL || "https://blackeconomy-874ac-default-rtdb.firebaseio.com"
+  apiKey: process.env.FIREBASE_API_KEY || config.firebase.apiKey,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN || config.firebase.authDomain,
+  projectId: process.env.FIREBASE_PROJECT_ID || config.firebase.projectId,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || config.firebase.storageBucket,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || config.firebase.messagingSenderId,
+  appId: process.env.FIREBASE_APP_ID || config.firebase.appId,
+  databaseURL: process.env.FIREBASE_DATABASE_URL || config.firebase.databaseURL
 };
 
-// Inicializar o Firebase
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
+// Inicializar o Firebase - reutilizando a app existente ou criando uma nova
+let app;
+try {
+  app = initializeApp(firebaseConfig);
+} catch (error) {
+  // Se já estiver inicializado, pegue a instância existente
+  app = initializeApp(firebaseConfig, "firebase-service");
+}
 
 /**
- * Obtém os dados do usuário do Firebase
- * @param {string} userId - ID do usuário do Discord
- * @returns {Promise<Object>} - Dados do usuário
+ * Classe de serviço para operações com o Firebase
  */
-export async function getUserData(userId) {
-  try {
-    const userRef = ref(database, `users/${userId}`);
-    const snapshot = await get(userRef);
-    
-    if (snapshot.exists()) {
-      return snapshot.val();
-    } else {
-      // Criar novo usuário se não existir
-      const newUserData = {
-        userId,
-        saldo: 0,
-        cooldowns: {}
-      };
+class FirebaseService {
+  /**
+   * Obtém os dados de um usuário do Firebase
+   * @param {string} userId - ID do usuário
+   * @returns {Promise<Object>} - Dados do usuário
+   */
+  async getUserData(userId) {
+    try {
+      const database = getDatabase();
+      const userRef = ref(database, `users/${userId}`);
+      const snapshot = await get(userRef);
       
-      await set(userRef, newUserData);
-      return newUserData;
+      if (snapshot.exists()) {
+        return snapshot.val();
+      } else {
+        // Se o usuário não existir, cria um novo
+        const userData = {
+          userId,
+          saldo: 0,
+          createdAt: Date.now()
+        };
+        
+        await set(userRef, userData);
+        return userData;
+      }
+    } catch (error) {
+      console.error('Erro ao obter dados do usuário:', error);
+      throw error;
     }
-  } catch (error) {
-    console.error('Erro ao obter dados do usuário:', error);
-    throw error;
   }
-}
 
-/**
- * Atualiza o saldo do usuário
- * @param {string} userId - ID do usuário do Discord
- * @param {number} valor - Valor a ser adicionado ou subtraído
- * @returns {Promise<number>} - Novo saldo
- */
-export async function updateUserBalance(userId, valor) {
-  try {
-    const userData = await getUserData(userId);
-    const novoSaldo = userData.saldo + valor;
-    
-    const userRef = ref(database, `users/${userId}`);
-    await update(userRef, {
-      saldo: novoSaldo
-    });
-    
-    return novoSaldo;
-  } catch (error) {
-    console.error('Erro ao atualizar saldo do usuário:', error);
-    throw error;
+  /**
+   * Atualiza o saldo de um usuário
+   * @param {string} userId - ID do usuário
+   * @param {number} amount - Valor a adicionar/subtrair (negativo para subtrair)
+   * @returns {Promise<number>} - Novo saldo
+   */
+  async updateUserBalance(userId, amount) {
+    try {
+      const database = getDatabase();
+      const userRef = ref(database, `users/${userId}`);
+      const snapshot = await get(userRef);
+      
+      if (snapshot.exists()) {
+        const userData = snapshot.val();
+        const currentBalance = userData.saldo || 0;
+        const newBalance = Math.max(0, currentBalance + amount); // Não permite saldo negativo
+        
+        await update(userRef, { saldo: newBalance });
+        return newBalance;
+      } else {
+        // Se o usuário não existir, cria um novo com o saldo fornecido
+        const initialBalance = Math.max(0, amount);
+        const userData = {
+          userId,
+          saldo: initialBalance,
+          createdAt: Date.now()
+        };
+        
+        await set(userRef, userData);
+        return initialBalance;
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar saldo:', error);
+      throw error;
+    }
   }
-}
 
-/**
- * Define o cooldown de um comando para um usuário
- * @param {string} userId - ID do usuário do Discord
- * @param {string} comando - Nome do comando
- * @returns {Promise<void>}
- */
-export async function setCooldown(userId, comando) {
-  try {
-    const userRef = ref(database, `users/${userId}/cooldowns`);
-    await update(userRef, {
-      [comando]: Date.now()
-    });
-  } catch (error) {
-    console.error('Erro ao definir cooldown:', error);
-    throw error;
-  }
-}
-
-/**
- * Verifica se um comando está em cooldown para um usuário
- * @param {string} userId - ID do usuário do Discord
- * @param {string} comando - Nome do comando
- * @param {number} tempoEspera - Tempo de espera em ms
- * @returns {Promise<{emCooldown: boolean, tempoRestante: number}>}
- */
-export async function checkCooldown(userId, comando, tempoEspera) {
-  try {
-    const userData = await getUserData(userId);
-    const cooldowns = userData.cooldowns || {};
-    
-    if (!cooldowns[comando]) {
+  /**
+   * Verifica se um comando está em cooldown
+   * @param {string} userId - ID do usuário
+   * @param {string} command - Nome do comando
+   * @param {number} cooldownTime - Tempo de cooldown em ms
+   * @returns {Promise<{emCooldown: boolean, tempoRestante: number}>}
+   */
+  async checkCooldown(userId, command, cooldownTime) {
+    try {
+      const database = getDatabase();
+      const cooldownRef = ref(database, `users/${userId}/cooldowns/${command}`);
+      const snapshot = await get(cooldownRef);
+      
+      if (snapshot.exists()) {
+        const lastUsed = snapshot.val();
+        const now = Date.now();
+        const timeElapsed = now - lastUsed;
+        
+        if (timeElapsed < cooldownTime) {
+          return {
+            emCooldown: true,
+            tempoRestante: cooldownTime - timeElapsed
+          };
+        }
+      }
+      
+      return { emCooldown: false, tempoRestante: 0 };
+    } catch (error) {
+      console.error('Erro ao verificar cooldown:', error);
       return { emCooldown: false, tempoRestante: 0 };
     }
-    
-    const ultimoUso = cooldowns[comando];
-    const agora = Date.now();
-    const tempoPassado = agora - ultimoUso;
-    
-    if (tempoPassado < tempoEspera) {
-      return {
-        emCooldown: true,
-        tempoRestante: tempoEspera - tempoPassado
-      };
-    }
-    
-    return { emCooldown: false, tempoRestante: 0 };
-  } catch (error) {
-    console.error('Erro ao verificar cooldown:', error);
-    // Em caso de erro, permitir o comando para evitar bloqueio
-    return { emCooldown: false, tempoRestante: 0 };
   }
-}
 
-/**
- * Obtém os usuários com maior saldo
- * @param {number} limit - Número de usuários a retornar
- * @param {number} page - Página atual (começa em 1)
- * @returns {Promise<Array>} - Lista de usuários ordenada por saldo
- */
-export async function getTopUsers(limit = 10, page = 1) {
-  try {
-    const skip = (page - 1) * limit;
-    const usersRef = ref(database, 'users');
-    
-    // Para obter mais que o limite, aumentamos o limite de consulta
-    // e depois aplicamos a paginação manualmente
-    const userQuery = query(
-      usersRef,
-      orderByChild('saldo'),
-      limitToLast(skip + limit) // Ordenado por saldo (crescente)
-    );
-    
-    const snapshot = await get(userQuery);
-    
-    if (!snapshot.exists()) {
+  /**
+   * Registra o uso de um comando para cooldown
+   * @param {string} userId - ID do usuário
+   * @param {string} command - Nome do comando
+   * @returns {Promise<void>}
+   */
+  async setCooldown(userId, command) {
+    try {
+      const database = getDatabase();
+      const cooldownRef = ref(database, `users/${userId}/cooldowns/${command}`);
+      
+      await set(cooldownRef, Date.now());
+    } catch (error) {
+      console.error('Erro ao definir cooldown:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtém o ranking de usuários por saldo
+   * @param {number} limit - Limite de usuários
+   * @param {number} page - Página atual
+   * @returns {Promise<Array>} - Array de usuários ordenados
+   */
+  async getTopUsers(limit = 10, page = 1) {
+    try {
+      const database = getDatabase();
+      const usersRef = ref(database, 'users');
+      const snapshot = await get(usersRef);
+      
+      if (!snapshot.exists()) {
+        return [];
+      }
+      
+      // Converter para array e ordenar por saldo (decrescente)
+      let users = [];
+      snapshot.forEach((childSnapshot) => {
+        const userData = childSnapshot.val();
+        users.push({
+          userId: userData.userId || childSnapshot.key,
+          saldo: userData.saldo || 0
+        });
+      });
+      
+      // Ordenar por saldo (decrescente)
+      users.sort((a, b) => b.saldo - a.saldo);
+      
+      // Aplicar paginação
+      const skip = (page - 1) * limit;
+      const pageUsers = users.slice(skip, skip + limit);
+      
+      return pageUsers;
+    } catch (error) {
+      console.error('Erro ao obter ranking de usuários:', error);
       return [];
     }
-    
-    // Converter para array e ordenar por saldo (decrescente)
-    let users = [];
-    snapshot.forEach((childSnapshot) => {
-      const user = childSnapshot.val();
-      users.push({
-        userId: user.userId || childSnapshot.key,
-        saldo: user.saldo || 0
-      });
-    });
-    
-    // Ordenar por saldo (decrescente)
-    users.sort((a, b) => b.saldo - a.saldo);
-    
-    // Aplicar paginação
-    const pageUsers = users.slice(skip, skip + limit);
-    
-    return pageUsers;
-  } catch (error) {
-    console.error('Erro ao obter ranking de usuários:', error);
-    return [];
   }
-}
 
-/**
- * Obtém o número total de usuários
- * @returns {Promise<number>} - Contagem total de usuários
- */
-export async function getTotalUsersCount() {
-  try {
-    const usersRef = ref(database, 'users');
-    const snapshot = await get(usersRef);
-    
-    if (!snapshot.exists()) {
+  /**
+   * Conta o total de usuários registrados
+   * @returns {Promise<number>} - Total de usuários
+   */
+  async getTotalUsersCount() {
+    try {
+      const database = getDatabase();
+      const usersRef = ref(database, 'users');
+      const snapshot = await get(usersRef);
+      
+      if (!snapshot.exists()) {
+        return 0;
+      }
+      
+      let count = 0;
+      snapshot.forEach(() => count++);
+      
+      return count;
+    } catch (error) {
+      console.error('Erro ao contar usuários:', error);
       return 0;
     }
-    
-    let count = 0;
-    snapshot.forEach(() => count++);
-    
-    return count;
-  } catch (error) {
-    console.error('Erro ao contar usuários:', error);
-    return 0;
   }
-}
 
-/**
- * Obtém a posição de um usuário no ranking
- * @param {string} userId - ID do usuário
- * @returns {Promise<Object|null>} - Posição e saldo do usuário
- */
-export async function getUserRanking(userId) {
-  try {
-    // Primeiro, verificamos se o usuário existe
-    const userData = await getUserData(userId);
-    
-    if (!userData) {
-      return null;
-    }
-    
-    // Obter todos os usuários e ordenar por saldo
-    const usersRef = ref(database, 'users');
-    const snapshot = await get(usersRef);
-    
-    if (!snapshot.exists()) {
-      return null;
-    }
-    
-    // Converter para array e ordenar por saldo (decrescente)
-    let users = [];
-    snapshot.forEach((childSnapshot) => {
-      const user = childSnapshot.val();
-      users.push({
-        userId: user.userId || childSnapshot.key,
-        saldo: user.saldo || 0
+  /**
+   * Obtém a posição do usuário no ranking
+   * @param {string} userId - ID do usuário
+   * @returns {Promise<{position: number, saldo: number}|null>}
+   */
+  async getUserRanking(userId) {
+    try {
+      const database = getDatabase();
+      const userRef = ref(database, `users/${userId}`);
+      const snapshot = await get(userRef);
+      
+      if (!snapshot.exists()) {
+        return null;
+      }
+      
+      const userData = snapshot.val();
+      
+      // Obter todos os usuários e classificá-los
+      const usersRef = ref(database, 'users');
+      const usersSnapshot = await get(usersRef);
+      
+      if (!usersSnapshot.exists()) {
+        return null;
+      }
+      
+      let users = [];
+      usersSnapshot.forEach((childSnapshot) => {
+        const user = childSnapshot.val();
+        users.push({
+          userId: user.userId || childSnapshot.key,
+          saldo: user.saldo || 0
+        });
       });
-    });
-    
-    users.sort((a, b) => b.saldo - a.saldo);
-    
-    // Encontrar a posição do usuário
-    const userIndex = users.findIndex(user => user.userId === userId);
-    
-    if (userIndex === -1) {
+      
+      users.sort((a, b) => b.saldo - a.saldo);
+      
+      // Encontrar a posição do usuário
+      const position = users.findIndex(user => user.userId === userId) + 1;
+      
+      if (position === 0) {
+        return null;
+      }
+      
+      return {
+        position,
+        saldo: userData.saldo || 0
+      };
+    } catch (error) {
+      console.error('Erro ao obter posição do usuário no ranking:', error);
       return null;
     }
-    
-    return {
-      position: userIndex + 1,
-      saldo: userData.saldo
-    };
-  } catch (error) {
-    console.error('Erro ao obter posição do usuário no ranking:', error);
-    return null;
   }
 }
 
-// Exportando como objeto para permitir importação default
-const firebaseService = {
-  getUserData,
-  updateUserBalance,
-  setCooldown,
-  checkCooldown,
-  getTopUsers,
-  getTotalUsersCount,
-  getUserRanking
-};
-
+// Criar uma instância e exportá-la
+const firebaseService = new FirebaseService();
 export default firebaseService;
