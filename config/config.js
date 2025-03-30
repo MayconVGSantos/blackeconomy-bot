@@ -1,4 +1,14 @@
 // config/config.js
+import dotenv from 'dotenv';
+
+// Garantir que dotenv seja carregado
+dotenv.config();
+
+// Log para debug
+console.log('Carregando configurações...');
+console.log(`DISCORD_TOKEN disponível: ${process.env.DISCORD_TOKEN ? 'Sim' : 'Não'}`);
+console.log(`CLIENT_ID disponível: ${process.env.CLIENT_ID ? 'Sim' : 'Não'}`);
+
 export default {
   discord: {
     token: process.env.DISCORD_TOKEN,

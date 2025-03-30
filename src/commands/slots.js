@@ -54,8 +54,8 @@ export async function execute(interaction) {
       return interaction.editReply({ embeds: [embedErro] });
     }
     
-    // Gerar o resultado dos slots
-    const resultado = casinoService.generateSlotsResult();
+   // Gerar o resultado dos slots
+const resultado = casinoService.generateSlotsResult(userId);
     
     // Calcular o ganho
     const ganho = aposta * resultado.multiplier;
