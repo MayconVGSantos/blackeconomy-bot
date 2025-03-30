@@ -1,0 +1,46 @@
+# Ignora arquivos de ambiente
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+.pnpm-debug.log*
+
+# VSCode
+.vscode/
+
+# Sistemas Operacionais
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Banco de dados ou arquivos locais
+*.sqlite3
+*.db
+
+# Arquivos temporários
+*.swp
+*.swo
+*.bak
+*.tmp
+
+# PyInstaller
+*.spec
+
+# Mac/Linux ocultos
+*.~*
