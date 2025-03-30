@@ -1,4 +1,4 @@
-// perfil.js - Versão melhorada
+// perfil.js - Versão simplificada
 import {
   SlashCommandBuilder,
   EmbedBuilder,
@@ -39,49 +39,6 @@ export async function execute(interaction) {
     // Obter quantidade de fichas de cassino
     const casinoChips = await inventoryService.getCasinoChips(userId);
 
-    // Calcular estatísticas de uso de comandos, se disponível
-    let commandStats = {};
-    try {
-      if (userData.cooldowns) {
-        commandStats = {
-          trabalhar: userData.cooldowns.trabalhar
-            ? new Date(userData.cooldowns.trabalhar).toLocaleString("pt-BR")
-            : "Nunca usado",
-          crime: userData.cooldowns.crime
-            ? new Date(userData.cooldowns.crime).toLocaleString("pt-BR")
-            : "Nunca usado",
-          seduzir: userData.cooldowns.seduzir
-            ? new Date(userData.cooldowns.seduzir).toLocaleString("pt-BR")
-            : "Nunca usado",
-        };
-      }
-    } catch (error) {
-      console.error("Erro ao processar estatísticas de comandos:", error);
-    }
-
-    // Calcular estatísticas do cassino, se disponível
-    let casinoStats = {
-      gamesPlayed: 0,
-      winnings: 0,
-      losses: 0,
-      balance: 0,
-    };
-
-    try {
-      if (userData.stats && userData.stats.casino) {
-        casinoStats = {
-          gamesPlayed: userData.stats.casino.gamesPlayed || 0,
-          winnings: userData.stats.casino.winnings || 0,
-          losses: userData.stats.casino.losses || 0,
-          balance:
-            (userData.stats.casino.winnings || 0) -
-            (userData.stats.casino.losses || 0),
-        };
-      }
-    } catch (error) {
-      console.error("Erro ao processar estatísticas de cassino:", error);
-    }
-
     // Determinar emblema baseado no saldo
     let badge = "🥉"; // Bronze (padrão)
     if (userData.saldo >= 100000) {
@@ -116,36 +73,8 @@ export async function execute(interaction) {
           inline: true,
         }
       )
-      .setFooter({
-        text: `ID: ${userId} • Membro desde ${new Date(
-          userData.createdAt || Date.now()
-        ).toLocaleDateString("pt-BR")}`,
-      })
+      .setFooter({ text: `ID: ${userId}` })
       .setTimestamp();
-
-    // Adicionar estatísticas de cassino se o usuário já jogou alguma vez
-    if (casinoStats.gamesPlayed > 0) {
-      embed.addFields({
-        name: "🎮 Estatísticas do Cassino",
-        value: `**Partidas:** ${
-          casinoStats.gamesPlayed
-        }\n**Ganhos:** R$${casinoStats.winnings.toFixed(
-          2
-        )}\n**Perdas:** R$${casinoStats.losses.toFixed(
-          2
-        )}\n**Saldo:** R$${casinoStats.balance.toFixed(2)}`,
-        inline: false,
-      });
-    }
-
-    // Adicionar última atividade se for o próprio usuário
-    if (isOwnProfile && Object.keys(commandStats).length > 0) {
-      embed.addFields({
-        name: "📊 Última Atividade",
-        value: `💼 Trabalho: ${commandStats.trabalhar}\n🔪 Crime: ${commandStats.crime}\n💋 Sedução: ${commandStats.seduzir}`,
-        inline: false,
-      });
-    }
 
     // Adicionar botões para comandos relacionados
     const row = new ActionRowBuilder().addComponents(
