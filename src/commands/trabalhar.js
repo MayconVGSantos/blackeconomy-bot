@@ -1,10 +1,11 @@
-// trabalhar.js
+// trabalhar.js - Com formatação brasileira
 import { SlashCommandBuilder } from "discord.js";
 import firebaseService from "../services/firebase.js";
 import geminiClient from "../services/gemini.js";
 import economicsUtils from "../utils/economics.js";
 import embedUtils from "../utils/embed.js";
 import config from "../../config/config.js";
+import { formatarDinheiro } from "../utils/format.js";
 
 export const data = new SlashCommandBuilder()
   .setName("trabalhar")
@@ -48,7 +49,7 @@ export async function execute(interaction) {
       conteudo = await geminiClient.gerarRespostaTrabalhar(valor);
     } catch (error) {
       console.error("Erro ao gerar resposta com Gemini:", error);
-      conteudo = `Você trabalhou duro e ganhou R$${valor.toFixed(2)}.`;
+      conteudo = `Você trabalhou duro e ganhou ${formatarDinheiro(valor)}.`;
     }
 
     // Criar embed

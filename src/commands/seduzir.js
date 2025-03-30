@@ -1,10 +1,11 @@
-// seduzir.js
+// seduzir.js - Com formatação brasileira
 import { SlashCommandBuilder } from "discord.js";
 import firebaseService from "../services/firebase.js";
 import geminiClient from "../services/gemini.js";
 import economicsUtils from "../utils/economics.js";
 import embedUtils from "../utils/embed.js";
 import config from "../../config/config.js";
+import { formatarDinheiro } from "../utils/format.js";
 
 export const data = new SlashCommandBuilder()
   .setName("seduzir")
@@ -52,10 +53,10 @@ export async function execute(interaction) {
     } catch (error) {
       console.error("Erro ao gerar resposta com Gemini:", error);
       conteudo = ganhou
-        ? `Você seduziu alguém e ganhou R$${Math.abs(valor).toFixed(2)}.`
-        : `Você tentou seduzir alguém, mas falhou e perdeu R$${Math.abs(
-            valor
-          ).toFixed(2)}.`;
+        ? `Você seduziu alguém e ganhou ${formatarDinheiro(Math.abs(valor))}.`
+        : `Você tentou seduzir alguém, mas falhou e perdeu ${formatarDinheiro(
+            Math.abs(valor)
+          )}.`;
     }
 
     // Criar embed

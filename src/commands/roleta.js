@@ -1,4 +1,4 @@
-// roleta.js
+// roleta.js - Com formatação brasileira
 import {
   SlashCommandBuilder,
   EmbedBuilder,
@@ -11,6 +11,7 @@ import {
 import inventoryService from "../services/inventory.js";
 import casinoService from "../services/casino.js";
 import embedUtils from "../utils/embed.js";
+import { formatarDinheiro } from "../utils/format.js";
 
 export const data = new SlashCommandBuilder()
   .setName("roleta")

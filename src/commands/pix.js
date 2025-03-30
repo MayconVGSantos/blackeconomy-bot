@@ -1,8 +1,9 @@
-// pix.js
+// pix.js - Com formatação brasileira
 import { SlashCommandBuilder } from "discord.js";
 import firebaseService from "../services/firebase.js";
 import geminiClient from "../services/gemini.js";
 import embedUtils from "../utils/embed.js";
+import { formatarDinheiro } from "../utils/format.js";
 
 export const data = new SlashCommandBuilder()
   .setName("pix")
@@ -58,8 +59,8 @@ export async function execute(interaction) {
       const embedErro = embedUtils.criarEmbedErro({
         usuario: interaction.user.username,
         titulo: "Saldo Insuficiente",
-        mensagem: `Você tem apenas R$${userData.saldo.toFixed(
-          2
+        mensagem: `Você tem apenas ${formatarDinheiro(
+          userData.saldo
         )} em sua conta.`,
       });
 
@@ -87,7 +88,9 @@ export async function execute(interaction) {
       );
     } catch (error) {
       console.error("Erro ao gerar motivo com Gemini:", error);
-      motivo = `Transferência de R$${valor.toFixed(2)} entre usuários.`;
+      motivo = `Transferência de ${formatarDinheiro(valor)} de ${
+        interaction.user.username
+      } para ${targetUser.username}`;
     }
 
     // Criar embed

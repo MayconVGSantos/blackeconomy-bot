@@ -1,9 +1,10 @@
-// roubar.js
+// roubar.js - Com formatação brasileira
 import { SlashCommandBuilder } from "discord.js";
 import firebaseService from "../services/firebase.js";
 import geminiClient from "../services/gemini.js";
 import embedUtils from "../utils/embed.js";
 import config from "../../config/config.js";
+import { formatarDinheiro } from "../utils/format.js";
 
 export const data = new SlashCommandBuilder()
   .setName("roubar")
@@ -129,10 +130,10 @@ export async function execute(interaction) {
     } catch (error) {
       console.error("Erro ao gerar resposta com Gemini:", error);
       conteudo = sucesso
-        ? `Você roubou R$${valor.toFixed(2)} de ${targetUser.username}.`
+        ? `Você roubou ${formatarDinheiro(valor)} de ${targetUser.username}.`
         : `Você foi pego tentando roubar ${
             targetUser.username
-          } e pagou uma multa de R$${valor.toFixed(2)}.`;
+          } e pagou uma multa de ${formatarDinheiro(valor)}.`;
     }
 
     // Criar embed

@@ -1,6 +1,7 @@
-// ranking.js - versão corrigida
+// ranking.js - Com formatação brasileira
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { getDatabase, ref, get, query, orderByChild } from "firebase/database";
+import { formatarDinheiro } from "../utils/format.js";
 
 export const data = new SlashCommandBuilder()
   .setName("ranking")
@@ -84,8 +85,8 @@ export async function execute(interaction) {
         if (position === 2) medal = "🥈 ";
         if (position === 3) medal = "🥉 ";
 
-        return `${medal}**${position}.** ${displayName} - R$${user.saldo.toFixed(
-          2
+        return `${medal}**${position}.** ${displayName} - ${formatarDinheiro(
+          user.saldo
         )}`;
       })
     );
@@ -100,7 +101,7 @@ export async function execute(interaction) {
       const userSaldo = users[userIndex].saldo;
       posicaoTexto = `\n\nSua posição: **#${
         userIndex + 1
-      }** - R$${userSaldo.toFixed(2)}`;
+      }** - ${formatarDinheiro(userSaldo)}`;
     }
 
     // Criar embed
