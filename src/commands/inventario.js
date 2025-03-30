@@ -7,12 +7,12 @@ import {
     ButtonBuilder,
     ButtonStyle,
     ComponentType
-  } from 'discord.js';
-  import inventoryService from '../services/inventory.js';
-  import storeItemsService from '../services/store-items.js';
-  import embedUtils from '../utils/embed.js';
-  
-  export const data = new SlashCommandBuilder()
+   } from 'discord.js';
+   import inventoryService from '../services/inventory.js';
+   import storeItemsService from '../services/store-items.js';
+   import embedUtils from '../utils/embed.js';
+   
+   export const data = new SlashCommandBuilder()
     .setName('inventario')
     .setDescription('Mostra os itens em seu inventário')
     .addUserOption(option => 
@@ -30,8 +30,8 @@ import {
           { name: '✨ VIP', value: 'vip' }
         )
     );
-  
-  export async function execute(interaction) {
+   
+   export async function execute(interaction) {
     try {
       await interaction.deferReply();
       
@@ -75,16 +75,16 @@ import {
       
       return interaction.editReply({ embeds: [embedErro] });
     }
-  }
-  
-  /**
+   }
+   
+   /**
    * Mostra o resumo do inventário do usuário
    * @param {Interaction} interaction - Interação do Discord
    * @param {User} targetUser - Usuário alvo
    * @param {Object} inventory - Dados do inventário
    * @returns {Promise<void>}
    */
-  async function showInventorySummary(interaction, targetUser, inventory) {
+   async function showInventorySummary(interaction, targetUser, inventory) {
     const isOwnInventory = targetUser.id === interaction.user.id;
     
     // Contagem de itens por categoria
@@ -219,9 +219,9 @@ import {
         }).catch(console.error);
       }
     });
-  }
-  
-  /**
+   }
+   
+   /**
    * Mostra os itens de uma categoria específica
    * @param {Interaction} interaction - Interação do Discord
    * @param {User} targetUser - Usuário alvo
@@ -229,7 +229,7 @@ import {
    * @param {Object} inventory - Dados do inventário
    * @returns {Promise<void>}
    */
-  async function showCategoryItems(interaction, targetUser, category, inventory) {
+   async function showCategoryItems(interaction, targetUser, category, inventory) {
     const isOwnInventory = targetUser.id === interaction.user.id;
     
     // Lista de itens desta categoria que o usuário possui
@@ -322,7 +322,7 @@ import {
     // Descrição dos itens
     const itemsDescription = userItems.map(item => {
       let description = `**${item.icon} ${item.name}** (x${item.quantity})
-  ${item.description}`;
+   ${item.description}`;
       
       // Adicionar informações sobre último uso, se aplicável
       if (item.lastUsed) {
@@ -452,4 +452,4 @@ import {
         }).catch(console.error);
       }
     });
-  }
+   }
