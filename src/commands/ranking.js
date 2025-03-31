@@ -23,8 +23,8 @@ export const data = new SlashCommandBuilder()
       .addChoices(
         { name: "🌎 Global - Todos os servidores", value: "global" },
         { name: "🏠 Local - Este servidor", value: "servidor" },
-        { name: "😇 Heróis - Moralidade positiva", value: "herois" },
-        { name: "😈 Vilões - Moralidade negativa", value: "viloes" }
+        { name: "😇 Heróis - Moralidade > 0", value: "herois" },
+        { name: "😈 Vilões - Moralidade < 0", value: "viloes" }
       )
   )
   .addIntegerOption((option) =>
@@ -391,13 +391,24 @@ async function exibirRankingMoralidade(
       const saldo = userData.saldo || 0;
 
       // Filtrar apenas heróis ou vilões com base no parâmetro
-      const isHeroi = morality > 0;
-      if ((herois && isHeroi) || (!herois && !isHeroi)) {
-        users.push({
-          userId,
-          saldo,
-          morality,
-        });
+      if (herois) {
+        // Para heróis, incluir APENAS usuários com moralidade > 0
+        if (morality > 0) {
+          users.push({
+            userId,
+            saldo,
+            morality,
+          });
+        }
+      } else {
+        // Para vilões, incluir APENAS usuários com moralidade < 0
+        if (morality < 0) {
+          users.push({
+            userId,
+            saldo,
+            morality,
+          });
+        }
       }
     });
 
@@ -417,11 +428,13 @@ async function exibirRankingMoralidade(
     }
 
     const totalUsuarios = users.length;
-    const totalPaginas = Math.ceil(totalUsuarios / itensPorPagina);
 
-    if (pagina > totalPaginas) {
+    // Se não houver usuários, mostrar mensagem personalizada
+    if (totalUsuarios === 0) {
       return interaction.editReply(
-        `Página inválida. O ranking possui apenas ${totalPaginas} página(s).`
+        herois
+          ? "Não há usuários com moralidade positiva no sistema ainda. Use o comando `/trabalhar` para aumentar sua moralidade e se tornar um herói!"
+          : "Não há usuários com moralidade negativa no sistema ainda. Use o comando `/crime` ou `/roubar` para reduzir sua moralidade e se tornar um vilão!"
       );
     }
 
@@ -473,7 +486,7 @@ async function exibirRankingMoralidade(
     let posicaoTexto = "";
     const userMorality = await moralityService.getMorality(interaction.user.id);
     const isUserEligible =
-      (herois && userMorality > 0) || (!herois && userMorality <= 0);
+      (herois && userMorality > 0) || (!herois && userMorality < 0);
 
     if (isUserEligible) {
       const userIndex = users.findIndex(
@@ -491,6 +504,12 @@ async function exibirRankingMoralidade(
           userData.morality
         } (${title} ${emoji})`;
       }
+    } else {
+      // Adicionar mensagem informativa quando o usuário não está no ranking
+      const { title, emoji } = moralityService.getMoralityTitle(userMorality);
+      posicaoTexto = herois
+        ? `\n\nVocê não está neste ranking. Sua moralidade atual é ${userMorality} (${title} ${emoji}). Use o comando \`/trabalhar\` para aumentá-la!`
+        : `\n\nVocê não está neste ranking. Sua moralidade atual é ${userMorality} (${title} ${emoji}). Use o comando \`/crime\` para diminuí-la!`;
     }
 
     // Criar embed com cores diferentes para heróis e vilões
@@ -500,6 +519,13 @@ async function exibirRankingMoralidade(
         `${herois ? "😇 Ranking de Heróis" : "😈 Ranking de Vilões"} 💰`
       )
       .setDescription(`${formattedRanking.join("\n")}${posicaoTexto}`)
+      .addFields({
+        name: "ℹ️ Informação",
+        value: herois
+          ? "Este ranking mostra apenas usuários com moralidade positiva"
+          : "Este ranking mostra apenas usuários com moralidade negativa",
+        inline: false,
+      })
       .setFooter({
         text: `Página ${pagina} de ${
           totalPaginas || 1
@@ -556,13 +582,13 @@ function createRankingMenuRow() {
         },
         {
           label: "Ranking de Heróis",
-          description: "Usuários com moralidade positiva",
+          description: "Usuários com moralidade > 0",
           value: "herois",
           emoji: "😇",
         },
         {
           label: "Ranking de Vilões",
-          description: "Usuários com moralidade negativa",
+          description: "Usuários com moralidade < 0",
           value: "viloes",
           emoji: "😈",
         },
