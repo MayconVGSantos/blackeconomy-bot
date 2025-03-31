@@ -425,7 +425,6 @@ class CasinoService {
       dozen = 3;
     }
 
-    // Determinar coluna
     let column;
     if (result === 0) {
       column = null;
