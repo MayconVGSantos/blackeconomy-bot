@@ -22,3 +22,9 @@ primary_region = 'ams'
   cpu_kind = 'shared'
   cpus = 1
   memory_mb = 1024
+
+[experimental]
+  auto_rollback = true
+
+[scale]
+  count = 1
