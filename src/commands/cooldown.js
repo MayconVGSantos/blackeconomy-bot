@@ -1,16 +1,16 @@
-// cooldown.js - Comando para verificar todos os cooldowns
+// tempo-espera.js - Comando para verificar todos os cooldowns
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import firebaseService from "../services/firebase.js";
 import config from "../../config/config.js";
 
 export const data = new SlashCommandBuilder()
-  .setName("cooldown")
+  .setName("tempo-espera")
   .setDescription("Mostra o tempo restante para usar novamente cada comando")
   .addUserOption((option) =>
     option
       .setName("usuario")
       .setDescription(
-        "Usuário para verificar cooldowns (somente para administradores)"
+        "Usuário para verificar tempos de espera (somente para administradores)"
       )
       .setRequired(false)
   );
@@ -33,7 +33,7 @@ export async function execute(interaction) {
       if (!isAdmin) {
         return interaction.editReply({
           content:
-            "Você não tem permissão para verificar cooldowns de outros usuários.",
+            "Você não tem permissão para verificar tempos de espera de outros usuários.",
           ephemeral: true,
         });
       }
@@ -72,7 +72,7 @@ export async function execute(interaction) {
     // Criar embed para exibir os resultados
     const embed = new EmbedBuilder()
       .setColor(0x3498db) // Azul
-      .setTitle(`⏱️ Cooldowns de ${targetUser.username}`)
+      .setTitle(`⏱️ Tempos de Espera de ${targetUser.username}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
       .setFooter({ text: `Solicitado por ${interaction.user.username}` })
       .setTimestamp();
@@ -84,7 +84,7 @@ export async function execute(interaction) {
 
       let status;
       if (cmd.emCooldown) {
-        status = `⏳ Em cooldown: **${minutes}m ${seconds}s** restantes`;
+        status = `⏳ Em espera: **${minutes}m ${seconds}s** restantes`;
       } else {
         status = "✅ Disponível agora!";
       }
@@ -93,7 +93,7 @@ export async function execute(interaction) {
 
       embed.addFields({
         name: `${cmd.emoji} /${cmd.name}`,
-        value: `${status}\nCooldown total: ${cooldownMinutes} minutos`,
+        value: `${status}\nTempo total: ${cooldownMinutes} minutos`,
         inline: true,
       });
     });
@@ -101,9 +101,9 @@ export async function execute(interaction) {
     // Enviar o embed
     return interaction.editReply({ embeds: [embed] });
   } catch (error) {
-    console.error("Erro ao executar comando cooldown:", error);
+    console.error("Erro ao executar comando tempo-espera:", error);
     return interaction.editReply(
-      "Ocorreu um erro ao verificar os cooldowns. Tente novamente mais tarde."
+      "Ocorreu um erro ao verificar os tempos de espera. Tente novamente mais tarde."
     );
   }
 }
