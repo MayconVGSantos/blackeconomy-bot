@@ -5,6 +5,7 @@ import { dirname, join } from "path";
 import { readdirSync } from "fs";
 import config from "../config/config.js";
 import dotenv from "dotenv";
+import './keepalive.js';
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
