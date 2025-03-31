@@ -1,14 +1,6 @@
-// ranking-avancado.js - Sistema de Rankings Globais e por Servidor
-import {
-  SlashCommandBuilder,
-  EmbedBuilder,
-  ActionRowBuilder,
-  StringSelectMenuBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  ComponentType,
-} from "discord.js";
-import { getDatabase, ref, get, query, orderByChild } from "firebase/database";
+// ranking.js - Versão super simplificada do comando de ranking
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+import { getDatabase, ref, get } from "firebase/database";
 import { formatarDinheiro } from "../utils/format.js";
 import moralityService from "../services/morality.js";
 
@@ -22,7 +14,7 @@ export const data = new SlashCommandBuilder()
       .setRequired(false)
       .addChoices(
         { name: "🌎 Global - Todos os servidores", value: "global" },
-        { name: "🏠 Local - Este servidor", value: "servidor" },
+        { name: "🏠 Local - Apenas este servidor", value: "servidor" },
         { name: "😇 Heróis - Moralidade > 0", value: "herois" },
         { name: "😈 Vilões - Moralidade < 0", value: "viloes" }
       )
@@ -36,405 +28,130 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
+  // Usamos try/catch para capturar erros, mas respondemos apenas no final
   try {
+    // Resposta imediata para evitar timeout
     await interaction.deferReply();
 
-    // Obter o tipo de ranking solicitado (padrão: global)
+    // Obter configurações básicas
     const tipoRanking = interaction.options.getString("tipo") || "global";
-
-    // Obter a página solicitada (padrão: 1)
     const pagina = interaction.options.getInteger("pagina") || 1;
     const itensPorPagina = 10;
 
-    // Executar o tipo de ranking selecionado
-    switch (tipoRanking) {
-      case "global":
-        await exibirRankingGlobal(interaction, pagina, itensPorPagina);
-        break;
-      case "servidor":
-        await exibirRankingServidor(interaction, pagina, itensPorPagina);
-        break;
-      case "herois":
-        await exibirRankingMoralidade(
-          interaction,
-          pagina,
-          itensPorPagina,
-          true
-        );
-        break;
-      case "viloes":
-        await exibirRankingMoralidade(
-          interaction,
-          pagina,
-          itensPorPagina,
-          false
-        );
-        break;
-      default:
-        await exibirRankingGlobal(interaction, pagina, itensPorPagina);
-        break;
-    }
-  } catch (error) {
-    console.error("Erro ao executar comando ranking:", error);
-    // Verificar se a interação já foi respondida antes de tentar editá-la
-    if (interaction.deferred || interaction.replied) {
-      await interaction.editReply(
-        "Ocorreu um erro ao carregar o ranking. Tente novamente mais tarde."
-      );
-    } else {
-      await interaction.reply({
-        content:
-          "Ocorreu um erro ao carregar o ranking. Tente novamente mais tarde.",
-        ephemeral: true,
-      });
-    }
-  }
-}
-
-/**
- * Exibe o ranking global (todos os servidores)
- * @param {Interaction} interaction - Interação do Discord
- * @param {number} pagina - Número da página
- * @param {number} itensPorPagina - Itens por página
- * @returns {Promise<void>}
- */
-async function exibirRankingGlobal(interaction, pagina, itensPorPagina) {
-  try {
-    // Verifica se a interação foi respondida
-    if (!interaction.deferred && !interaction.replied) {
-      await interaction.deferReply();
-    }
-
+    // Acessar banco de dados
     const database = getDatabase();
     const usersRef = ref(database, "users");
     const snapshot = await get(usersRef);
 
     if (!snapshot.exists()) {
-      return interaction.editReply("Não há usuários registrados no sistema.");
+      return await interaction.editReply(
+        "Não há usuários registrados no sistema."
+      );
     }
 
-    // Converter em array e ordenar por saldo (decrescente)
+    // Arrays para armazenar usuários filtrados
     let users = [];
-    snapshot.forEach((childSnapshot) => {
-      const userData = childSnapshot.val();
-      users.push({
-        userId: userData.userId || childSnapshot.key,
-        saldo: userData.saldo || 0,
-      });
-    });
 
-    // Ordenar por saldo (decrescente)
-    users.sort((a, b) => b.saldo - a.saldo);
+    // Filtrar usuários com base no tipo de ranking
+    if (tipoRanking === "servidor") {
+      // Obter membros do servidor
+      const serverMembers = await interaction.guild.members.fetch();
+      const serverMemberIds = Array.from(serverMembers.keys());
 
-    const totalUsuarios = users.length;
-    const totalPaginas = Math.ceil(totalUsuarios / itensPorPagina);
+      // Filtrar apenas usuários do servidor
+      snapshot.forEach((childSnapshot) => {
+        const userData = childSnapshot.val();
+        const userId = userData.userId || childSnapshot.key;
 
-    if (pagina > totalPaginas) {
-      return interaction.editReply(
-        `Página inválida. O ranking possui apenas ${totalPaginas} página(s).`
-      );
-    }
-
-    // Aplicar paginação
-    const startIndex = (pagina - 1) * itensPorPagina;
-    const endIndex = Math.min(startIndex + itensPorPagina, totalUsuarios);
-    const pageUsers = users.slice(startIndex, endIndex);
-
-    if (pageUsers.length === 0) {
-      return interaction.editReply(
-        "Nenhum usuário encontrado para esta página do ranking."
-      );
-    }
-
-    // Resolver nomes de usuários
-    const formattedRanking = await Promise.all(
-      pageUsers.map(async (user, index) => {
-        let displayName;
-        try {
-          const discordUser = await interaction.client.users.fetch(user.userId);
-          displayName = discordUser.username;
-        } catch (error) {
-          displayName = `Usuário #${user.userId.substring(0, 6)}...`;
+        if (serverMemberIds.includes(userId)) {
+          users.push({
+            userId: userId,
+            saldo: userData.saldo || 0,
+            morality: userData.morality || 0,
+          });
         }
+      });
+    } else if (tipoRanking === "herois") {
+      // Filtrar apenas usuários com moralidade positiva
+      snapshot.forEach((childSnapshot) => {
+        const userData = childSnapshot.val();
+        const morality = userData.morality || 0;
 
-        // Calcular a posição real no ranking
-        const position = startIndex + index + 1;
-
-        // Adicionar medalhas para os 3 primeiros do ranking geral
-        let medal = "";
-        if (position === 1) medal = "🥇 ";
-        if (position === 2) medal = "🥈 ";
-        if (position === 3) medal = "🥉 ";
-
-        return `${medal}**${position}.** ${displayName} - ${formatarDinheiro(
-          user.saldo
-        )}`;
-      })
-    );
-
-    // Encontrar a posição do usuário atual
-    const userIndex = users.findIndex(
-      (user) => user.userId === interaction.user.id
-    );
-    let posicaoTexto = "";
-
-    if (userIndex !== -1) {
-      const userSaldo = users[userIndex].saldo;
-      posicaoTexto = `\n\nSua posição: **#${
-        userIndex + 1
-      }** - ${formatarDinheiro(userSaldo)}`;
-    }
-
-    // Criar embed
-    const embed = new EmbedBuilder()
-      .setColor(0xffd700) // Dourado
-      .setTitle("🌎 Ranking Global de Riqueza 💰")
-      .setDescription(`${formattedRanking.join("\n")}${posicaoTexto}`)
-      .setFooter({
-        text: `Página ${pagina} de ${
-          totalPaginas || 1
-        } • Total de ${totalUsuarios} usuários globalmente`,
-      })
-      .setTimestamp();
-
-    // Criar menu para alternar entre tipos de ranking
-    const row = createRankingMenuRow();
-    const buttonRow = createNavigationButtons(pagina, totalPaginas);
-
-    // Enviar mensagem com o menu
-    await interaction.editReply({
-      embeds: [embed],
-      components: [row, buttonRow],
-    });
-
-    // Configurar coletor para o menu e botões
-    setupComponentCollector(interaction, "global", pagina, totalPaginas);
-  } catch (error) {
-    console.error("Erro ao exibir ranking global:", error);
-    return interaction.editReply(
-      "Ocorreu um erro ao carregar o ranking global. Tente novamente mais tarde."
-    );
-  }
-}
-
-/**
- * Exibe o ranking do servidor atual
- * @param {Interaction} interaction - Interação do Discord
- * @param {number} pagina - Número da página
- * @param {number} itensPorPagina - Itens por página
- * @returns {Promise<void>}
- */
-async function exibirRankingServidor(interaction, pagina, itensPorPagina) {
-  try {
-    // Verifica se a interação foi respondida
-    if (!interaction.deferred && !interaction.replied) {
-      await interaction.deferReply();
-    }
-
-    const database = getDatabase();
-    const usersRef = ref(database, "users");
-    const snapshot = await get(usersRef);
-    const serverId = interaction.guildId;
-
-    if (!snapshot.exists()) {
-      return interaction.editReply("Não há usuários registrados no sistema.");
-    }
-
-    // Buscar membros do servidor
-    const serverMembers = await interaction.guild.members.fetch();
-    const serverMemberIds = serverMembers.map((member) => member.id);
-
-    // Converter em array e filtrar apenas usuários do servidor atual
-    let users = [];
-    snapshot.forEach((childSnapshot) => {
-      const userData = childSnapshot.val();
-      const userId = userData.userId || childSnapshot.key;
-
-      // Verificar se o usuário está no servidor atual
-      if (serverMemberIds.includes(userId)) {
-        users.push({
-          userId: userId,
-          saldo: userData.saldo || 0,
-        });
-      }
-    });
-
-    // Ordenar por saldo (decrescente)
-    users.sort((a, b) => b.saldo - a.saldo);
-
-    const totalUsuarios = users.length;
-    const totalPaginas = Math.ceil(totalUsuarios / itensPorPagina);
-
-    if (pagina > totalPaginas) {
-      return interaction.editReply(
-        `Página inválida. O ranking possui apenas ${totalPaginas} página(s).`
-      );
-    }
-
-    // Aplicar paginação
-    const startIndex = (pagina - 1) * itensPorPagina;
-    const endIndex = Math.min(startIndex + itensPorPagina, totalUsuarios);
-    const pageUsers = users.slice(startIndex, endIndex);
-
-    if (pageUsers.length === 0) {
-      return interaction.editReply(
-        "Nenhum usuário encontrado para esta página do ranking."
-      );
-    }
-
-    // Resolver nomes de usuários
-    const formattedRanking = await Promise.all(
-      pageUsers.map(async (user, index) => {
-        let displayName;
-        try {
-          const member = serverMembers.get(user.userId);
-          displayName = member.nickname || member.user.username;
-        } catch (error) {
-          displayName = `Usuário #${user.userId.substring(0, 6)}...`;
-        }
-
-        // Calcular a posição real no ranking
-        const position = startIndex + index + 1;
-
-        // Adicionar medalhas para os 3 primeiros do ranking
-        let medal = "";
-        if (position === 1) medal = "🥇 ";
-        if (position === 2) medal = "🥈 ";
-        if (position === 3) medal = "🥉 ";
-
-        return `${medal}**${position}.** ${displayName} - ${formatarDinheiro(
-          user.saldo
-        )}`;
-      })
-    );
-
-    // Encontrar a posição do usuário atual
-    const userIndex = users.findIndex(
-      (user) => user.userId === interaction.user.id
-    );
-    let posicaoTexto = "";
-
-    if (userIndex !== -1) {
-      const userSaldo = users[userIndex].saldo;
-      posicaoTexto = `\n\nSua posição: **#${
-        userIndex + 1
-      }** - ${formatarDinheiro(userSaldo)}`;
-    }
-
-    // Criar embed
-    const embed = new EmbedBuilder()
-      .setColor(0x3498db) // Azul
-      .setTitle(`🏠 Ranking do Servidor: ${interaction.guild.name}`)
-      .setThumbnail(interaction.guild.iconURL({ dynamic: true }))
-      .setDescription(`${formattedRanking.join("\n")}${posicaoTexto}`)
-      .setFooter({
-        text: `Página ${pagina} de ${
-          totalPaginas || 1
-        } • Total de ${totalUsuarios} usuários neste servidor`,
-      })
-      .setTimestamp();
-
-    // Criar menu para alternar entre tipos de ranking
-    const row = createRankingMenuRow();
-    const buttonRow = createNavigationButtons(pagina, totalPaginas);
-
-    // Enviar mensagem com o menu
-    await interaction.editReply({
-      embeds: [embed],
-      components: [row, buttonRow],
-    });
-
-    // Configurar coletor para o menu e botões
-    setupComponentCollector(interaction, "servidor", pagina, totalPaginas);
-  } catch (error) {
-    console.error("Erro ao exibir ranking do servidor:", error);
-    return interaction.editReply(
-      "Ocorreu um erro ao carregar o ranking do servidor. Tente novamente mais tarde."
-    );
-  }
-}
-
-/**
- * Exibe o ranking de moralidade (heróis ou vilões)
- * @param {Interaction} interaction - Interação do Discord
- * @param {number} pagina - Número da página
- * @param {number} itensPorPagina - Itens por página
- * @param {boolean} herois - True para heróis, false para vilões
- * @returns {Promise<void>}
- */
-async function exibirRankingMoralidade(
-  interaction,
-  pagina,
-  itensPorPagina,
-  herois
-) {
-  try {
-    // Verifica se a interação foi respondida
-    if (!interaction.deferred && !interaction.replied) {
-      await interaction.deferReply();
-    }
-
-    const database = getDatabase();
-    const usersRef = ref(database, "users");
-    const snapshot = await get(usersRef);
-
-    if (!snapshot.exists()) {
-      return interaction.editReply("Não há usuários registrados no sistema.");
-    }
-
-    // Converter em array
-    let users = [];
-    snapshot.forEach((childSnapshot) => {
-      const userData = childSnapshot.val();
-      const userId = userData.userId || childSnapshot.key;
-      const morality = userData.morality || 0;
-      const saldo = userData.saldo || 0;
-
-      // Filtrar apenas heróis ou vilões com base no parâmetro
-      if (herois) {
-        // Para heróis, incluir APENAS usuários com moralidade > 0
         if (morality > 0) {
           users.push({
-            userId,
-            saldo,
-            morality,
+            userId: userData.userId || childSnapshot.key,
+            saldo: userData.saldo || 0,
+            morality: morality,
           });
         }
-      } else {
-        // Para vilões, incluir APENAS usuários com moralidade < 0
+      });
+    } else if (tipoRanking === "viloes") {
+      // Filtrar apenas usuários com moralidade negativa
+      snapshot.forEach((childSnapshot) => {
+        const userData = childSnapshot.val();
+        const morality = userData.morality || 0;
+
         if (morality < 0) {
           users.push({
-            userId,
-            saldo,
-            morality,
+            userId: userData.userId || childSnapshot.key,
+            saldo: userData.saldo || 0,
+            morality: morality,
           });
         }
-      }
-    });
+      });
+    } else {
+      // Ranking global - todos os usuários
+      snapshot.forEach((childSnapshot) => {
+        const userData = childSnapshot.val();
+        users.push({
+          userId: userData.userId || childSnapshot.key,
+          saldo: userData.saldo || 0,
+          morality: userData.morality || 0,
+        });
+      });
+    }
 
-    // Ordenação específica para cada tipo de ranking
-    if (herois) {
-      // Para heróis: ordenar por moralidade (decrescente) e depois por saldo (decrescente)
+    // Verificar se o ranking está vazio após filtrar
+    if (users.length === 0) {
+      let mensagem = "Não há usuários para exibir neste ranking.";
+
+      if (tipoRanking === "herois") {
+        mensagem =
+          "Não há usuários com moralidade positiva no sistema ainda. Use o comando `/trabalhar` para aumentar sua moralidade e se tornar um herói!";
+      } else if (tipoRanking === "viloes") {
+        mensagem =
+          "Não há usuários com moralidade negativa no sistema ainda. Use o comando `/crime` para diminuir sua moralidade e se tornar um vilão!";
+      }
+
+      return await interaction.editReply(mensagem);
+    }
+
+    // Ordenar usuários com base no tipo de ranking
+    if (tipoRanking === "herois") {
+      // Ordenar primeiro por moralidade (maior primeiro) e depois por saldo
       users.sort((a, b) => {
         if (b.morality !== a.morality) return b.morality - a.morality;
         return b.saldo - a.saldo;
       });
-    } else {
-      // Para vilões: ordenar por moralidade (crescente) e depois por saldo (decrescente)
+    } else if (tipoRanking === "viloes") {
+      // Ordenar primeiro por moralidade (menor primeiro) e depois por saldo
       users.sort((a, b) => {
         if (a.morality !== b.morality) return a.morality - b.morality;
         return b.saldo - a.saldo;
       });
+    } else {
+      // Ordenar apenas por saldo (maior primeiro)
+      users.sort((a, b) => b.saldo - a.saldo);
     }
 
+    // Calcular paginação
     const totalUsuarios = users.length;
+    const totalPaginas = Math.ceil(totalUsuarios / itensPorPagina);
 
-    // Se não houver usuários, mostrar mensagem personalizada
-    if (totalUsuarios === 0) {
-      return interaction.editReply(
-        herois
-          ? "Não há usuários com moralidade positiva no sistema ainda. Use o comando `/trabalhar` para aumentar sua moralidade e se tornar um herói!"
-          : "Não há usuários com moralidade negativa no sistema ainda. Use o comando `/crime` ou `/roubar` para reduzir sua moralidade e se tornar um vilão!"
+    // Verificar se a página solicitada é válida
+    if (pagina > totalPaginas) {
+      return await interaction.editReply(
+        `Página inválida. O ranking possui apenas ${totalPaginas} página(s).`
       );
     }
 
@@ -443,58 +160,61 @@ async function exibirRankingMoralidade(
     const endIndex = Math.min(startIndex + itensPorPagina, totalUsuarios);
     const pageUsers = users.slice(startIndex, endIndex);
 
-    if (pageUsers.length === 0) {
-      return interaction.editReply(
-        `Nenhum ${
-          herois ? "herói" : "vilão"
-        } encontrado para esta página do ranking.`
-      );
-    }
+    // Construir o ranking formatado
+    let formattedRanking = [];
 
-    // Resolver nomes de usuários
-    const formattedRanking = await Promise.all(
-      pageUsers.map(async (user, index) => {
-        let displayName;
-        try {
-          const discordUser = await interaction.client.users.fetch(user.userId);
-          displayName = discordUser.username;
-        } catch (error) {
-          displayName = `Usuário #${user.userId.substring(0, 6)}...`;
-        }
+    for (let i = 0; i < pageUsers.length; i++) {
+      const user = pageUsers[i];
+      const position = startIndex + i + 1;
 
-        // Calcular a posição real no ranking
-        const position = startIndex + index + 1;
+      // Obter username
+      let displayName;
+      try {
+        const discordUser = await interaction.client.users.fetch(user.userId);
+        displayName = discordUser.username;
+      } catch (error) {
+        // Fallback se não conseguir obter o usuário
+        displayName = `Usuário #${user.userId.substring(0, 6)}...`;
+      }
 
-        // Adicionar medalhas para os 3 primeiros do ranking
-        let medal = "";
-        if (position === 1) medal = "🥇 ";
-        if (position === 2) medal = "🥈 ";
-        if (position === 3) medal = "🥉 ";
+      // Adicionar medalhas para os 3 primeiros
+      let medal = "";
+      if (position === 1) medal = "🥇 ";
+      if (position === 2) medal = "🥈 ";
+      if (position === 3) medal = "🥉 ";
 
-        // Obter título de moralidade
+      // Formatar linha baseada no tipo de ranking
+      if (tipoRanking === "herois" || tipoRanking === "viloes") {
+        // Incluir informações de moralidade
         const { title, emoji } = moralityService.getMoralityTitle(
           user.morality
         );
+        formattedRanking.push(
+          `${medal}**${position}.** ${emoji} ${displayName} - ${formatarDinheiro(
+            user.saldo
+          )} - Moral: ${user.morality} (${title})`
+        );
+      } else {
+        // Formato padrão (apenas saldo)
+        formattedRanking.push(
+          `${medal}**${position}.** ${displayName} - ${formatarDinheiro(
+            user.saldo
+          )}`
+        );
+      }
+    }
 
-        return `${medal}**${position}.** ${emoji} ${displayName} - ${formatarDinheiro(
-          user.saldo
-        )} - Moral: ${user.morality} (${title})`;
-      })
+    // Encontrar a posição do usuário atual
+    let posicaoTexto = "";
+    const userIndex = users.findIndex(
+      (user) => user.userId === interaction.user.id
     );
 
-    // Encontrar a posição do usuário atual, se aplicável
-    let posicaoTexto = "";
-    const userMorality = await moralityService.getMorality(interaction.user.id);
-    const isUserEligible =
-      (herois && userMorality > 0) || (!herois && userMorality < 0);
+    if (userIndex !== -1) {
+      const userData = users[userIndex];
 
-    if (isUserEligible) {
-      const userIndex = users.findIndex(
-        (user) => user.userId === interaction.user.id
-      );
-
-      if (userIndex !== -1) {
-        const userData = users[userIndex];
+      if (tipoRanking === "herois" || tipoRanking === "viloes") {
+        // Incluir informações de moralidade
         const { title, emoji } = moralityService.getMoralityTitle(
           userData.morality
         );
@@ -503,276 +223,115 @@ async function exibirRankingMoralidade(
         }** - ${formatarDinheiro(userData.saldo)} - Moral: ${
           userData.morality
         } (${title} ${emoji})`;
+      } else {
+        // Formato padrão (apenas posição e saldo)
+        posicaoTexto = `\n\nSua posição: **#${
+          userIndex + 1
+        }** - ${formatarDinheiro(userData.saldo)}`;
       }
-    } else {
-      // Adicionar mensagem informativa quando o usuário não está no ranking
+    } else if (tipoRanking === "herois" || tipoRanking === "viloes") {
+      // Mensagem personalizada se o usuário não estiver no ranking
+      const userMorality = await moralityService.getMorality(
+        interaction.user.id
+      );
       const { title, emoji } = moralityService.getMoralityTitle(userMorality);
-      posicaoTexto = herois
-        ? `\n\nVocê não está neste ranking. Sua moralidade atual é ${userMorality} (${title} ${emoji}). Use o comando \`/trabalhar\` para aumentá-la!`
-        : `\n\nVocê não está neste ranking. Sua moralidade atual é ${userMorality} (${title} ${emoji}). Use o comando \`/crime\` para diminuí-la!`;
+
+      posicaoTexto =
+        tipoRanking === "herois"
+          ? `\n\nVocê não está neste ranking. Sua moralidade atual é ${userMorality} (${title} ${emoji}). Use o comando \`/trabalhar\` para aumentá-la!`
+          : `\n\nVocê não está neste ranking. Sua moralidade atual é ${userMorality} (${title} ${emoji}). Use o comando \`/crime\` para diminuí-la!`;
     }
 
-    // Criar embed com cores diferentes para heróis e vilões
-    const embed = new EmbedBuilder()
-      .setColor(herois ? 0x00ff00 : 0xff0000) // Verde para heróis, vermelho para vilões
-      .setTitle(
-        `${herois ? "😇 Ranking de Heróis" : "😈 Ranking de Vilões"} 💰`
-      )
-      .setDescription(`${formattedRanking.join("\n")}${posicaoTexto}`)
-      .addFields({
-        name: "ℹ️ Informação",
-        value: herois
-          ? "Este ranking mostra apenas usuários com moralidade positiva"
-          : "Este ranking mostra apenas usuários com moralidade negativa",
-        inline: false,
-      })
-      .setFooter({
-        text: `Página ${pagina} de ${
-          totalPaginas || 1
-        } • Total de ${totalUsuarios} ${herois ? "heróis" : "vilões"}`,
-      })
-      .setTimestamp();
+    // Criar o embed
+    const embed = new EmbedBuilder();
 
-    // Criar menu para alternar entre tipos de ranking
-    const row = createRankingMenuRow();
-    const buttonRow = createNavigationButtons(pagina, totalPaginas);
+    // Definir cor e título
+    switch (tipoRanking) {
+      case "global":
+        embed
+          .setColor(0xffd700) // Dourado
+          .setTitle("🌎 Ranking Global de Riqueza 💰");
+        break;
 
-    // Enviar mensagem com o menu
-    await interaction.editReply({
-      embeds: [embed],
-      components: [row, buttonRow],
+      case "servidor":
+        embed
+          .setColor(0x3498db) // Azul
+          .setTitle(`🏠 Ranking do Servidor: ${interaction.guild.name}`)
+          .setThumbnail(interaction.guild.iconURL({ dynamic: true }));
+        break;
+
+      case "herois":
+        embed
+          .setColor(0x00ff00) // Verde
+          .setTitle("😇 Ranking de Heróis 💰");
+        break;
+
+      case "viloes":
+        embed
+          .setColor(0xff0000) // Vermelho
+          .setTitle("😈 Ranking de Vilões 💰");
+        break;
+    }
+
+    // Adicionar descrição e informações
+    embed.setDescription(`${formattedRanking.join("\n")}${posicaoTexto}`);
+
+    // Adicionar rodapé
+    embed.setFooter({
+      text: `Página ${pagina} de ${
+        totalPaginas || 1
+      } • Total de ${totalUsuarios} ${
+        tipoRanking === "herois"
+          ? "heróis"
+          : tipoRanking === "viloes"
+          ? "vilões"
+          : tipoRanking === "servidor"
+          ? "usuários neste servidor"
+          : "usuários globalmente"
+      }`,
     });
 
-    // Configurar coletor para o menu e botões
-    setupComponentCollector(
-      interaction,
-      herois ? "herois" : "viloes",
-      pagina,
-      totalPaginas
-    );
+    embed.setTimestamp();
+
+    // Adicionar informação extra para heróis e vilões
+    if (tipoRanking === "herois" || tipoRanking === "viloes") {
+      embed.addFields({
+        name: "ℹ️ Informação",
+        value:
+          tipoRanking === "herois"
+            ? "Este ranking mostra apenas usuários com moralidade > 0"
+            : "Este ranking mostra apenas usuários com moralidade < 0",
+        inline: false,
+      });
+    }
+
+    // Enviar o embed final
+    await interaction.editReply({ embeds: [embed] });
   } catch (error) {
-    console.error("Erro ao exibir ranking de moralidade:", error);
-    return interaction.editReply(
-      "Ocorreu um erro ao carregar o ranking de moralidade. Tente novamente mais tarde."
+    console.error(
+      `Erro ao executar comando ranking [${error.message}]:`,
+      error
     );
-  }
-}
 
-/**
- * Cria o menu dropdown para seleção de tipos de ranking
- * @returns {ActionRowBuilder} - Linha com o menu
- */
-function createRankingMenuRow() {
-  return new ActionRowBuilder().addComponents(
-    new StringSelectMenuBuilder()
-      .setCustomId("ranking_menu")
-      .setPlaceholder("Selecione o tipo de ranking")
-      .addOptions([
-        {
-          label: "Ranking Global",
-          description: "Todos os usuários do bot",
-          value: "global",
-          emoji: "🌎",
-        },
-        {
-          label: "Ranking do Servidor",
-          description: "Apenas usuários deste servidor",
-          value: "servidor",
-          emoji: "🏠",
-        },
-        {
-          label: "Ranking de Heróis",
-          description: "Usuários com moralidade > 0",
-          value: "herois",
-          emoji: "😇",
-        },
-        {
-          label: "Ranking de Vilões",
-          description: "Usuários com moralidade < 0",
-          value: "viloes",
-          emoji: "😈",
-        },
-      ])
-  );
-}
-
-/**
- * Cria botões de navegação para o ranking
- * @param {number} currentPage - Página atual
- * @param {number} totalPages - Total de páginas
- * @returns {ActionRowBuilder} - Linha com botões
- */
-function createNavigationButtons(currentPage, totalPages) {
-  return new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId("ranking_prev")
-      .setLabel("Anterior")
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji("⬅️")
-      .setDisabled(currentPage <= 1),
-
-    new ButtonBuilder()
-      .setCustomId("ranking_page")
-      .setLabel(`Página ${currentPage} de ${totalPages}`)
-      .setStyle(ButtonStyle.Primary)
-      .setDisabled(true),
-
-    new ButtonBuilder()
-      .setCustomId("ranking_next")
-      .setLabel("Próxima")
-      .setStyle(ButtonStyle.Secondary)
-      .setEmoji("➡️")
-      .setDisabled(currentPage >= totalPages)
-  );
-}
-
-/**
- * Configura o coletor de componentes para o menu e botões
- * @param {Interaction} interaction - Interação do Discord
- * @param {string} currentType - Tipo atual de ranking
- * @param {number} currentPage - Página atual
- * @param {number} totalPages - Total de páginas
- */
-function setupComponentCollector(
-  interaction,
-  currentType,
-  currentPage,
-  totalPages
-) {
-  // Usa a própria mensagem de resposta para criar o coletor (mais seguro)
-  const collector = interaction.channel.createMessageComponentCollector({
-    filter: (i) =>
-      i.user.id === interaction.user.id &&
-      i.message.interaction?.id === interaction.id,
-    time: 300000, // 5 minutos
-  });
-
-  collector.on("collect", async (i) => {
-    await i.deferUpdate();
-
-    if (i.customId === "ranking_menu") {
-      const newType = i.values[0];
-      // Executar com nova seleção e página 1
+    // Tentar enviar resposta de erro
+    if (interaction.deferred) {
       try {
-        collector.stop();
-        switch (newType) {
-          case "global":
-            await exibirRankingGlobal(interaction, 1, 10);
-            break;
-          case "servidor":
-            await exibirRankingServidor(interaction, 1, 10);
-            break;
-          case "herois":
-            await exibirRankingMoralidade(interaction, 1, 10, true);
-            break;
-          case "viloes":
-            await exibirRankingMoralidade(interaction, 1, 10, false);
-            break;
-        }
-      } catch (error) {
-        console.error("Erro ao mudar o tipo de ranking:", error);
-      }
-    } else if (i.customId === "ranking_prev" && currentPage > 1) {
-      try {
-        collector.stop();
-
-        // Executar com página anterior
-        switch (currentType) {
-          case "global":
-            await exibirRankingGlobal(interaction, currentPage - 1, 10);
-            break;
-          case "servidor":
-            await exibirRankingServidor(interaction, currentPage - 1, 10);
-            break;
-          case "herois":
-            await exibirRankingMoralidade(
-              interaction,
-              currentPage - 1,
-              10,
-              true
-            );
-            break;
-          case "viloes":
-            await exibirRankingMoralidade(
-              interaction,
-              currentPage - 1,
-              10,
-              false
-            );
-            break;
-        }
-      } catch (error) {
-        console.error("Erro ao navegar para a página anterior:", error);
-      }
-    } else if (i.customId === "ranking_next" && currentPage < totalPages) {
-      try {
-        collector.stop();
-
-        // Executar com próxima página
-        switch (currentType) {
-          case "global":
-            await exibirRankingGlobal(interaction, currentPage + 1, 10);
-            break;
-          case "servidor":
-            await exibirRankingServidor(interaction, currentPage + 1, 10);
-            break;
-          case "herois":
-            await exibirRankingMoralidade(
-              interaction,
-              currentPage + 1,
-              10,
-              true
-            );
-            break;
-          case "viloes":
-            await exibirRankingMoralidade(
-              interaction,
-              currentPage + 1,
-              10,
-              false
-            );
-            break;
-        }
-      } catch (error) {
-        console.error("Erro ao navegar para a próxima página:", error);
-      }
-    }
-  });
-
-  collector.on("end", async (collected, reason) => {
-    if (reason === "time") {
-      // Desativar componentes quando expirar o tempo
-      try {
-        const fetchedReply = await interaction.fetchReply();
-
-        // Mesmos componentes, mas desativados
-        const disabledRow = new ActionRowBuilder().addComponents(
-          StringSelectMenuBuilder.from(
-            (await interaction.fetchReply()).components[0].components[0]
-          ).setDisabled(true)
+        await interaction.editReply(
+          "Ocorreu um erro ao carregar o ranking. Tente novamente mais tarde."
         );
-
-        const disabledButtonRow = new ActionRowBuilder().addComponents(
-          ButtonBuilder.from(
-            (await interaction.fetchReply()).components[1].components[0]
-          ).setDisabled(true),
-          ButtonBuilder.from(
-            (await interaction.fetchReply()).components[1].components[1]
-          ).setDisabled(true),
-          ButtonBuilder.from(
-            (await interaction.fetchReply()).components[1].components[2]
-          ).setDisabled(true)
-        );
-
-        await interaction.editReply({
-          components: [disabledRow, disabledButtonRow],
+      } catch (e) {
+        console.error("Não foi possível editar a resposta:", e);
+      }
+    } else {
+      try {
+        await interaction.reply({
+          content:
+            "Ocorreu um erro ao carregar o ranking. Tente novamente mais tarde.",
+          ephemeral: true,
         });
-      } catch (error) {
-        console.error(
-          "Erro ao desativar componentes após tempo esgotado:",
-          error
-        );
+      } catch (e) {
+        console.error("Não foi possível responder à interação:", e);
       }
     }
-  });
+  }
 }

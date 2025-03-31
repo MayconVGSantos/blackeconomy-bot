@@ -1,0 +1,12 @@
+{
+  "rules": {
+    "users": {
+      ".read": true,
+      ".indexOn": ["saldo"],
+      "$uid": {
+        ".read": true,
+        ".write": true
+      }
+    }
+  }
+}
