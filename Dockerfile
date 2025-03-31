@@ -10,11 +10,11 @@ COPY package*.json ./
 # Instala dependências
 RUN npm install
 
-# Copia o restante do códig
+# Copia o restante do código
 COPY . .
 
 # Expõe a porta usada pelo bot
 EXPOSE 8080
 
 # Inicia o bot (caminho corrigido!)
-CMD ["node", "src/index.js"]
+CMD ["sh", "-c", "node src/deploy-commands.js && node src/index.js"]
