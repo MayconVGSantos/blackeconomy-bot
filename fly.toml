@@ -32,4 +32,4 @@ primary_region = "ams"
   auto_rollback = true
 
 [scale]
-  count = 1
+  count = 2
