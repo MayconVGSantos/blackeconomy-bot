@@ -1,9 +1,10 @@
-// seduzir.js - Com formatação brasileira
+// seduzir.js - Com sistema de moralidade integrado
 import { SlashCommandBuilder } from "discord.js";
 import firebaseService from "../services/firebase.js";
 import geminiClient from "../services/gemini.js";
 import economicsUtils from "../utils/economics.js";
 import embedUtils from "../utils/embed.js";
+import moralityService from "../services/morality.js";
 import config from "../../config/config.js";
 import { formatarDinheiro } from "../utils/format.js";
 
@@ -34,8 +35,17 @@ export async function execute(interaction) {
       return interaction.editReply({ embeds: [embedCooldown] });
     }
 
+    // Obter a moralidade atual do usuário
+    const morality = await moralityService.getMorality(userId);
+
     // Calcular valor e resultado
-    const { valor, ganhou } = economicsUtils.calcularValorSeduzir();
+    const { valor: valorBase, ganhou } = economicsUtils.calcularValorSeduzir();
+
+    // Aplicar efeitos de moralidade (efeito neutro para seduzir, então usa o valor base)
+    let valor = valorBase;
+
+    // Atualizar a moralidade (seduzir é levemente negativo)
+    await moralityService.updateMoralityForAction(userId, "seduzir", ganhou);
 
     // Atualizar saldo no Firebase
     const novoSaldo = await firebaseService.updateUserBalance(userId, valor);
@@ -69,6 +79,23 @@ export async function execute(interaction) {
       ganhou,
       comando: "seduzir",
     });
+
+    // Adicionar informações de moralidade ao embed
+    const { title, emoji } = moralityService.getMoralityTitle(morality);
+    embed.addFields({
+      name: `${emoji} Reputação`,
+      value: `${title} (${morality})`,
+      inline: true,
+    });
+
+    // Diminuição de moralidade notificação (opcional)
+    if (morality > 20) {
+      embed.addFields({
+        name: `⚠️ Aviso de Reputação`,
+        value: `Seduzir pessoas por dinheiro afeta levemente sua reputação.`,
+        inline: false,
+      });
+    }
 
     // Enviar resposta
     return interaction.editReply({ embeds: [embed] });

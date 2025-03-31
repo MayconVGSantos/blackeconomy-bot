@@ -1,9 +1,10 @@
-// crime.js
+// crime.js - Com sistema de moralidade integrado
 import { SlashCommandBuilder } from "discord.js";
 import firebaseService from "../services/firebase.js";
 import geminiClient from "../services/gemini.js";
 import economicsUtils from "../utils/economics.js";
 import embedUtils from "../utils/embed.js";
+import moralityService from "../services/morality.js";
 import config from "../../config/config.js";
 
 export const data = new SlashCommandBuilder()
@@ -33,8 +34,34 @@ export async function execute(interaction) {
       return interaction.editReply({ embeds: [embedCooldown] });
     }
 
+    // Obter a moralidade atual do usuário
+    const morality = await moralityService.getMorality(userId);
+
     // Calcular valor e resultado
-    const { valor, ganhou } = economicsUtils.calcularValorCrime();
+    const { valor: valorBase, ganhou } = economicsUtils.calcularValorCrime();
+
+    // Aplicar efeitos de moralidade ao valor e chance de sucesso
+    let valor = valorBase;
+    let moralityEffects = null;
+    let moralityDescription = "";
+
+    if (ganhou) {
+      // Calcular efeitos de moralidade para o crime (vilões têm bônus)
+      moralityEffects = moralityService.calculateMoralityEffects(
+        morality,
+        "crime"
+      );
+
+      // Ajustar o valor com o multiplicador de moralidade
+      valor = Math.floor(valorBase * moralityEffects.multiplier);
+
+      if (moralityEffects.description) {
+        moralityDescription = `\n${moralityEffects.description}`;
+      }
+    }
+
+    // Atualizar a moralidade (crime é negativo)
+    await moralityService.updateMoralityForAction(userId, "crime", ganhou);
 
     // Atualizar saldo no Firebase
     const novoSaldo = await firebaseService.updateUserBalance(userId, valor);
@@ -46,10 +73,17 @@ export async function execute(interaction) {
     let conteudo;
     try {
       conteudo = await geminiClient.gerarRespostaCrime(Math.abs(valor), ganhou);
+
+      // Adicionar efeito de moralidade à resposta se houver
+      if (moralityDescription) {
+        conteudo += moralityDescription;
+      }
     } catch (error) {
       console.error("Erro ao gerar resposta com Gemini:", error);
       conteudo = ganhou
-        ? `Você cometeu um crime e lucrou R$${Math.abs(valor).toFixed(2)}.`
+        ? `Você cometeu um crime e lucrou R$${Math.abs(valor).toFixed(
+            2
+          )}.${moralityDescription}`
         : `Você tentou cometer um crime, mas foi pego e perdeu R$${Math.abs(
             valor
           ).toFixed(2)}.`;
@@ -64,6 +98,14 @@ export async function execute(interaction) {
       novoSaldo,
       ganhou,
       comando: "crime",
+    });
+
+    // Adicionar informações de moralidade ao embed
+    const { title, emoji } = moralityService.getMoralityTitle(morality);
+    embed.addFields({
+      name: `${emoji} Reputação`,
+      value: `${title} (${morality})`,
+      inline: true,
     });
 
     // Enviar resposta

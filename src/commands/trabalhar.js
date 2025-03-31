@@ -1,9 +1,10 @@
-// trabalhar.js - Com formatação brasileira
+// trabalhar.js - Com sistema de moralidade integrado
 import { SlashCommandBuilder } from "discord.js";
 import firebaseService from "../services/firebase.js";
 import geminiClient from "../services/gemini.js";
 import economicsUtils from "../utils/economics.js";
 import embedUtils from "../utils/embed.js";
+import moralityService from "../services/morality.js";
 import config from "../../config/config.js";
 import { formatarDinheiro } from "../utils/format.js";
 
@@ -34,8 +35,29 @@ export async function execute(interaction) {
       return interaction.editReply({ embeds: [embedCooldown] });
     }
 
-    // Calcular valor ganho
-    const valor = economicsUtils.calcularValorTrabalhar();
+    // Obter a moralidade atual do usuário
+    const morality = await moralityService.getMorality(userId);
+
+    // Calcular valor base ganho
+    const valorBase = economicsUtils.calcularValorTrabalhar();
+
+    // Aplicar efeitos de moralidade ao valor (heróis têm bônus)
+    const moralityEffects = moralityService.calculateMoralityEffects(
+      morality,
+      "trabalhar"
+    );
+
+    // Ajustar o valor com o multiplicador de moralidade
+    const valor = Math.floor(valorBase * moralityEffects.multiplier);
+
+    // Determinar se houve bônus ou penalidade por moralidade
+    let moralityDescription = "";
+    if (moralityEffects.description) {
+      moralityDescription = `\n${moralityEffects.description}`;
+    }
+
+    // Atualizar a moralidade (trabalho honesto é positivo)
+    await moralityService.updateMoralityForAction(userId, "trabalhar");
 
     // Atualizar saldo no Firebase
     const novoSaldo = await firebaseService.updateUserBalance(userId, valor);
@@ -47,9 +69,16 @@ export async function execute(interaction) {
     let conteudo;
     try {
       conteudo = await geminiClient.gerarRespostaTrabalhar(valor);
+
+      // Adicionar efeito de moralidade à resposta se houver
+      if (moralityDescription) {
+        conteudo += moralityDescription;
+      }
     } catch (error) {
       console.error("Erro ao gerar resposta com Gemini:", error);
-      conteudo = `Você trabalhou duro e ganhou ${formatarDinheiro(valor)}.`;
+      conteudo = `Você trabalhou duro e ganhou ${formatarDinheiro(
+        valor
+      )}.${moralityDescription}`;
     }
 
     // Criar embed
@@ -61,6 +90,36 @@ export async function execute(interaction) {
       novoSaldo,
       comando: "trabalhar",
     });
+
+    // Adicionar informações de moralidade ao embed
+    const { title, emoji } = moralityService.getMoralityTitle(morality);
+    embed.addFields({
+      name: `${emoji} Reputação`,
+      value: `${title} (${morality})`,
+      inline: true,
+    });
+
+    // Adicionar informações de bônus se aplicável
+    if (moralityEffects.multiplier > 1) {
+      const bonusPercentage = ((moralityEffects.multiplier - 1) * 100).toFixed(
+        0
+      );
+      embed.addFields({
+        name: "✨ Bônus de Reputação",
+        value: `+${bonusPercentage}% por ser honesto`,
+        inline: true,
+      });
+    } else if (moralityEffects.multiplier < 1) {
+      const penaltyPercentage = (
+        (1 - moralityEffects.multiplier) *
+        100
+      ).toFixed(0);
+      embed.addFields({
+        name: "⚠️ Penalidade de Reputação",
+        value: `-${penaltyPercentage}% por má conduta`,
+        inline: true,
+      });
+    }
 
     // Enviar resposta
     return interaction.editReply({ embeds: [embed] });
