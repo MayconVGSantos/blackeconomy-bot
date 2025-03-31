@@ -16,5 +16,5 @@ COPY . .
 # Expõe a porta usada pelo bot
 EXPOSE 8080
 
-# Inicia o bot
-CMD ["node", "index.js"]
+# Inicia o bot (caminho corrigido!)
+CMD ["node", "src/index.js"]
