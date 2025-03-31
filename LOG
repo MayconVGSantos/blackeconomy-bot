@@ -1,0 +1,53 @@
+# 📜 BlackEconomy Bot - Histórico de Atualizações
+
+## 🚀 Versão 1.1.0 (31 de Março de 2025)
+### Sistema de Moralidade
+- ✅ **Novo sistema de reputação**: Suas ações agora influenciam sua reputação no jogo
+- ✅ **Novo comando `/moralidade`**: Verifique sua reputação atual e veja os bônus correspondentes
+- ✅ **Títulos de reputação**: De "Vilão Infame" a "Herói da Comunidade" com emojis correspondentes
+- ✅ **Bônus baseados em moralidade**: 
+  - Jogadores com alta moralidade recebem até +5% trabalhando
+  - Criminosos recebem até +5% em crimes e +0.5% na chance de roubo
+- ✅ **Visualização da barra de moralidade**: Veja onde você está no espectro moral
+
+### Sistema de Cassino
+- ✅ **Novo comando `/loja`**: Compre fichas e itens com seu dinheiro
+- ✅ **Novo jogo Blackjack**: Jogue 21 contra o dealer e ganhe até 2.5x sua aposta
+- ✅ **Novo jogo de Dados**: Aposte em números e ganhe até 35x sua aposta
+- ✅ **Novo jogo Roleta**: Aposte em números, cores, paridade e dúzias
+- ✅ **Novo jogo de Slots**: Jogue caça-níqueis com diferentes multiplicadores
+- ✅ **Sistema de fichas**: Troque fichas por dinheiro com o comando `/trocar-fichas`
+- ✅ **Sistema de inventário**: Guarde fichas e itens no seu inventário
+
+### Melhorias e Correções
+- 🔧 **Comando `/tempo-espera`**: Veja quanto tempo falta para usar novamente cada comando
+- ✅ **Comando `/perfil`**: Veja seus dados econômicos e estatísticas de jogo
+- 🔧 **Correção da função dobrar aposta no Blackjack**: Resolvido problema que causava erros nas interações
+- ⚖️ **Rebalanceamento da economia**:
+  - Valores do comando trabalhar rebalanceados (10-100)
+  - Valores do comando crime rebalanceados (100-350)
+  - Valores do comando seduzir rebalanceados (50-200)
+  - Cooldowns aumentados para todos os comandos
+
+## 🚀 Versão 1.0.0 (30 de Março de 2025)
+### Lançamento Inicial
+- ✅ **Sistema de economia básico**: Ganhe e gaste dinheiro
+- ✅ **Comando `/trabalhar`**: Ganhe dinheiro trabalhando honestamente
+- ✅ **Comando `/crime`**: Arrisque-se para ganhar dinheiro ilegalmente
+- ✅ **Comando `/seduzir`**: Nova forma de ganhar dinheiro com 50% de chance de sucesso
+- ✅ **Comando `/roubar`**: Tente roubar dinheiro de outros jogadores
+- ✅ **Comando `/ranking`**: Veja sua posição no ranking de riqueza
+- ✅ **Integração com Gemini API**: Respostas criativas e personalizadas para cada comando
+- ✅ **Sistemas base**:
+  - Banco de dados Firebase para armazenar dados dos usuários
+  - Sistema de cooldown para equilibrar a economia
+  - Embeds informativos para todos os comandos
+
+---
+
+## 🔮 Próximas Atualizações Planejadas
+- 🏆 **Sistema de conquistas**
+- 🏠 **Compra de propriedades**
+- 👪 **Sistema de famílias/clãs**
+- 🔫 **Sistema de itens/armas**
+- 🧩 **Eventos temporários**
