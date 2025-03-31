@@ -52,19 +52,18 @@ class GeminiClient {
   /**
    * Gera uma resposta para o comando diario
    * @param {number} valor - Valor ganho em dinheiro
-   * @param {number} fichas - Quantidade de fichas ganhas
    * @param {number} streak - Streak atual
    * @returns {Promise<string>} - Resposta gerada
    */
-  async gerarRespostaDiario(valor, fichas, streak) {
+  async gerarRespostaDiario(valor, streak) {
     const prompt = `
     Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
     
     Crie uma mensagem engraçada e com humor negro leve para o comando /diario de um bot de Discord.
-    O usuário acabou de coletar R$${valor} e ${fichas} fichas de cassino como recompensa diária.
+    O usuário acabou de coletar R${valor} como recompensa diária.
     Seu streak atual é de ${streak} ${streak === 1 ? "dia" : "dias"}.
     
-    A mensagem deve incorporar o valor e a quantidade de fichas de forma natural e soar motivadora para que o usuário volte no dia seguinte.
+    A mensagem deve incorporar o valor de forma natural e soar motivadora para que o usuário volte no dia seguinte.
     Seja criativo e divertido. Limite a resposta a 1-2 frases curtas.
     
     Responda apenas com a mensagem, sem explicações adicionais.
@@ -76,19 +75,18 @@ class GeminiClient {
   /**
    * Gera uma resposta para o comando semanal
    * @param {number} valor - Valor ganho em dinheiro
-   * @param {number} fichas - Quantidade de fichas ganhas
    * @param {number} streak - Streak atual
    * @returns {Promise<string>} - Resposta gerada
    */
-  async gerarRespostaSemanal(valor, fichas, streak) {
+  async gerarRespostaSemanal(valor, streak) {
     const prompt = `
     Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
     
     Crie uma mensagem engraçada e com humor negro leve para o comando /semanal de um bot de Discord.
-    O usuário acabou de coletar R$${valor} e ${fichas} fichas de cassino como recompensa semanal.
+    O usuário acabou de coletar R${valor} como recompensa semanal.
     Seu streak atual é de ${streak} ${streak === 1 ? "semana" : "semanas"}.
     
-    A mensagem deve incorporar o valor e a quantidade de fichas de forma natural e soar como uma "grande recompensa" comparada à diária.
+    A mensagem deve incorporar o valor de forma natural e soar como uma "grande recompensa" comparada à diária.
     Seja criativo, use um tom exagerado para destacar que é uma recompensa maior. Limite a resposta a 1-2 frases curtas.
     
     Responda apenas com a mensagem, sem explicações adicionais.

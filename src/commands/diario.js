@@ -58,11 +58,11 @@ export async function execute(interaction) {
     }
 
     // Calcular recompensas
-    // Recompensa em dinheiro: 250 + (25 * streak), max 1000
-    const recompensaDinheiro = Math.min(250 + 25 * streak, 1000);
+    // Recompensa em dinheiro: 100 + (15 * streak), max 400
+    const recompensaDinheiro = Math.min(100 + 15 * streak, 400);
 
-    // Recompensas em fichas: 5 + streak, max 25
-    const recompensaFichas = Math.min(5 + streak, 25);
+    // Não dá mais fichas de cassino
+    const recompensaFichas = 0;
 
     // Bônus de moralidade
     const morality = await moralityService.getMorality(userId);
@@ -86,10 +86,8 @@ export async function execute(interaction) {
       recompensaDinheiro + bonusMoralidade
     );
 
-    const novasFichas = await inventoryService.addCasinoChips(
-      userId,
-      recompensaFichas
-    );
+    // Obter as fichas atuais sem adicionar novas
+    const novasFichas = await inventoryService.getCasinoChips(userId);
 
     // Atualizar dados de streak
     await firebaseService.updateStreak(userId, {
@@ -106,14 +104,13 @@ export async function execute(interaction) {
     try {
       conteudo = await geminiClient.gerarRespostaDiario(
         recompensaDinheiro,
-        recompensaFichas,
         streak
       );
     } catch (error) {
       console.error("Erro ao gerar resposta com Gemini:", error);
       conteudo = `Você coletou sua recompensa diária: ${formatarDinheiro(
         recompensaDinheiro + bonusMoralidade
-      )} e ${recompensaFichas} fichas de cassino. Volte amanhã para manter seu streak de ${streak} dias!`;
+      )}. Volte amanhã para manter seu streak de ${streak} dias!`;
     }
 
     // Criar embed
@@ -131,8 +128,8 @@ export async function execute(interaction) {
           inline: true,
         },
         {
-          name: "🎰 Fichas Recebidas",
-          value: `${recompensaFichas} fichas`,
+          name: "⏱️ Dias Consecutivos",
+          value: `${streak} dia${streak !== 1 ? "s" : ""} de coleta`,
           inline: true,
         },
         {

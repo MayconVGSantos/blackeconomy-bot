@@ -75,11 +75,11 @@ export async function execute(interaction) {
     }
 
     // Calcular recompensas
-    // Recompensa base em dinheiro: 1500 + (500 * streak), max 5000
-    const recompensaDinheiro = Math.min(1500 + 500 * streak, 5000);
+    // Recompensa base em dinheiro: 500 + (100 * streak), max 1500
+    const recompensaDinheiro = Math.min(500 + 100 * streak, 1500);
 
-    // Recompensas em fichas: 25 + (10 * streak), max 75
-    const recompensaFichas = Math.min(25 + 10 * streak, 75);
+    // Não dá mais fichas de cassino
+    const recompensaFichas = 0;
 
     // Bônus de moralidade
     const morality = await moralityService.getMorality(userId);
@@ -103,10 +103,8 @@ export async function execute(interaction) {
       recompensaDinheiro + bonusMoralidade
     );
 
-    const novasFichas = await inventoryService.addCasinoChips(
-      userId,
-      recompensaFichas
-    );
+    // Obter as fichas atuais sem adicionar novas
+    const novasFichas = await inventoryService.getCasinoChips(userId);
 
     // Atualizar dados de streak
     await firebaseService.updateStreak(userId, {
@@ -123,14 +121,13 @@ export async function execute(interaction) {
     try {
       conteudo = await geminiClient.gerarRespostaSemanal(
         recompensaDinheiro,
-        recompensaFichas,
         streak
       );
     } catch (error) {
       console.error("Erro ao gerar resposta com Gemini:", error);
       conteudo = `Você coletou sua recompensa semanal: ${formatarDinheiro(
         recompensaDinheiro + bonusMoralidade
-      )} e ${recompensaFichas} fichas de cassino. Volte na próxima semana para manter seu streak de ${streak} semanas!`;
+      )}. Volte na próxima semana para manter seu streak de ${streak} semanas!`;
     }
 
     // Criar embed
@@ -148,8 +145,8 @@ export async function execute(interaction) {
           inline: true,
         },
         {
-          name: "🎰 Fichas Recebidas",
-          value: `${recompensaFichas} fichas`,
+          name: "📅 Semanas Consecutivas",
+          value: `${streak} semana${streak !== 1 ? "s" : ""} de coleta`,
           inline: true,
         },
         {
