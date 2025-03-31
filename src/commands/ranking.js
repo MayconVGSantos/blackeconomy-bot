@@ -49,31 +49,45 @@ export async function execute(interaction) {
     // Executar o tipo de ranking selecionado
     switch (tipoRanking) {
       case "global":
-        return await exibirRankingGlobal(interaction, pagina, itensPorPagina);
+        await exibirRankingGlobal(interaction, pagina, itensPorPagina);
+        break;
       case "servidor":
-        return await exibirRankingServidor(interaction, pagina, itensPorPagina);
+        await exibirRankingServidor(interaction, pagina, itensPorPagina);
+        break;
       case "herois":
-        return await exibirRankingMoralidade(
+        await exibirRankingMoralidade(
           interaction,
           pagina,
           itensPorPagina,
           true
         );
+        break;
       case "viloes":
-        return await exibirRankingMoralidade(
+        await exibirRankingMoralidade(
           interaction,
           pagina,
           itensPorPagina,
           false
         );
+        break;
       default:
-        return await exibirRankingGlobal(interaction, pagina, itensPorPagina);
+        await exibirRankingGlobal(interaction, pagina, itensPorPagina);
+        break;
     }
   } catch (error) {
     console.error("Erro ao executar comando ranking:", error);
-    return interaction.editReply(
-      "Ocorreu um erro ao carregar o ranking. Tente novamente mais tarde."
-    );
+    // Verificar se a interação já foi respondida antes de tentar editá-la
+    if (interaction.deferred || interaction.replied) {
+      await interaction.editReply(
+        "Ocorreu um erro ao carregar o ranking. Tente novamente mais tarde."
+      );
+    } else {
+      await interaction.reply({
+        content:
+          "Ocorreu um erro ao carregar o ranking. Tente novamente mais tarde.",
+        ephemeral: true,
+      });
+    }
   }
 }
 
@@ -86,6 +100,11 @@ export async function execute(interaction) {
  */
 async function exibirRankingGlobal(interaction, pagina, itensPorPagina) {
   try {
+    // Verifica se a interação foi respondida
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply();
+    }
+
     const database = getDatabase();
     const usersRef = ref(database, "users");
     const snapshot = await get(usersRef);
@@ -207,6 +226,11 @@ async function exibirRankingGlobal(interaction, pagina, itensPorPagina) {
  */
 async function exibirRankingServidor(interaction, pagina, itensPorPagina) {
   try {
+    // Verifica se a interação foi respondida
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply();
+    }
+
     const database = getDatabase();
     const usersRef = ref(database, "users");
     const snapshot = await get(usersRef);
@@ -345,6 +369,11 @@ async function exibirRankingMoralidade(
   herois
 ) {
   try {
+    // Verifica se a interação foi respondida
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply();
+    }
+
     const database = getDatabase();
     const usersRef = ref(database, "users");
     const snapshot = await get(usersRef);
@@ -584,10 +613,11 @@ function setupComponentCollector(
   currentPage,
   totalPages
 ) {
-  const message = interaction.fetchReply();
-
+  // Usa a própria mensagem de resposta para criar o coletor (mais seguro)
   const collector = interaction.channel.createMessageComponentCollector({
-    filter: (i) => i.user.id === interaction.user.id,
+    filter: (i) =>
+      i.user.id === interaction.user.id &&
+      i.message.interaction?.id === interaction.id,
     time: 300000, // 5 minutos
   });
 
@@ -596,68 +626,89 @@ function setupComponentCollector(
 
     if (i.customId === "ranking_menu") {
       const newType = i.values[0];
-      collector.stop();
-
       // Executar com nova seleção e página 1
-      switch (newType) {
-        case "global":
-          await exibirRankingGlobal(interaction, 1, 10);
-          break;
-        case "servidor":
-          await exibirRankingServidor(interaction, 1, 10);
-          break;
-        case "herois":
-          await exibirRankingMoralidade(interaction, 1, 10, true);
-          break;
-        case "viloes":
-          await exibirRankingMoralidade(interaction, 1, 10, false);
-          break;
+      try {
+        collector.stop();
+        switch (newType) {
+          case "global":
+            await exibirRankingGlobal(interaction, 1, 10);
+            break;
+          case "servidor":
+            await exibirRankingServidor(interaction, 1, 10);
+            break;
+          case "herois":
+            await exibirRankingMoralidade(interaction, 1, 10, true);
+            break;
+          case "viloes":
+            await exibirRankingMoralidade(interaction, 1, 10, false);
+            break;
+        }
+      } catch (error) {
+        console.error("Erro ao mudar o tipo de ranking:", error);
       }
     } else if (i.customId === "ranking_prev" && currentPage > 1) {
-      collector.stop();
+      try {
+        collector.stop();
 
-      // Executar com página anterior
-      switch (currentType) {
-        case "global":
-          await exibirRankingGlobal(interaction, currentPage - 1, 10);
-          break;
-        case "servidor":
-          await exibirRankingServidor(interaction, currentPage - 1, 10);
-          break;
-        case "herois":
-          await exibirRankingMoralidade(interaction, currentPage - 1, 10, true);
-          break;
-        case "viloes":
-          await exibirRankingMoralidade(
-            interaction,
-            currentPage - 1,
-            10,
-            false
-          );
-          break;
+        // Executar com página anterior
+        switch (currentType) {
+          case "global":
+            await exibirRankingGlobal(interaction, currentPage - 1, 10);
+            break;
+          case "servidor":
+            await exibirRankingServidor(interaction, currentPage - 1, 10);
+            break;
+          case "herois":
+            await exibirRankingMoralidade(
+              interaction,
+              currentPage - 1,
+              10,
+              true
+            );
+            break;
+          case "viloes":
+            await exibirRankingMoralidade(
+              interaction,
+              currentPage - 1,
+              10,
+              false
+            );
+            break;
+        }
+      } catch (error) {
+        console.error("Erro ao navegar para a página anterior:", error);
       }
     } else if (i.customId === "ranking_next" && currentPage < totalPages) {
-      collector.stop();
+      try {
+        collector.stop();
 
-      // Executar com próxima página
-      switch (currentType) {
-        case "global":
-          await exibirRankingGlobal(interaction, currentPage + 1, 10);
-          break;
-        case "servidor":
-          await exibirRankingServidor(interaction, currentPage + 1, 10);
-          break;
-        case "herois":
-          await exibirRankingMoralidade(interaction, currentPage + 1, 10, true);
-          break;
-        case "viloes":
-          await exibirRankingMoralidade(
-            interaction,
-            currentPage + 1,
-            10,
-            false
-          );
-          break;
+        // Executar com próxima página
+        switch (currentType) {
+          case "global":
+            await exibirRankingGlobal(interaction, currentPage + 1, 10);
+            break;
+          case "servidor":
+            await exibirRankingServidor(interaction, currentPage + 1, 10);
+            break;
+          case "herois":
+            await exibirRankingMoralidade(
+              interaction,
+              currentPage + 1,
+              10,
+              true
+            );
+            break;
+          case "viloes":
+            await exibirRankingMoralidade(
+              interaction,
+              currentPage + 1,
+              10,
+              false
+            );
+            break;
+        }
+      } catch (error) {
+        console.error("Erro ao navegar para a próxima página:", error);
       }
     }
   });
