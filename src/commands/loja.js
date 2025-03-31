@@ -32,7 +32,7 @@ export async function execute(interaction) {
     const userId = interaction.user.id;
     let selectedCategory = interaction.options.getString("categoria");
 
-    // Se nenhuma categoria foi selecionada, mostrar o menu principal
+    // Se nenhuma categoria foi selecionada, mostrar o menu pricipal
     if (!selectedCategory) {
       return await showMainMenu(interaction, userId);
     }
