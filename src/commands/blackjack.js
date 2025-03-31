@@ -833,7 +833,6 @@ async function handlePlayerSurrender(
 
   newCollector.on("end", async (collected, reason) => {
     if (reason === "time") {
-     
       const disabledRow = new ActionRowBuilder().addComponents(
         ButtonBuilder.from(row.components[0]).setDisabled(true),
         ButtonBuilder.from(row.components[1]).setDisabled(true)
