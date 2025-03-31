@@ -1,6 +1,18 @@
-# 📜 BlackEconomy Bot - Histórico de Atualizações
+## 🚀 Versão 1.0.0 (30 de Março de 2025)
+### Lançamento Inicial
+- ✅ **Sistema de economia básico**: Ganhe e gaste dinheiro
+- ✅ **Comando `/trabalhar`**: Ganhe dinheiro trabalhando honestamente
+- ✅ **Comando `/crime`**: Arrisque-se para ganhar dinheiro ilegalmente
+- ✅ **Comando `/seduzir`**: Nova forma de ganhar dinheiro com 50% de chance de sucesso
+- ✅ **Comando `/roubar`**: Tente roubar dinheiro de outros jogadores
+- ✅ **Comando `/ranking`**: Veja sua posição no ranking de riqueza
+- ✅ **Integração com Gemini API**: Respostas criativas e personalizadas para cada comando
+- ✅ **Sistemas base**:
+  - Banco de dados Firebase para armazenar dados dos usuários
+  - Sistema de cooldown para equilibrar a economia
+  - Embeds informativos para todos os comandos
 
-## 🚀 Versão 1.1.0 (31 de Março de 2025)
+## 🚀 Versão 1.1.0 (30 de Março de 2025)
 ### Sistema de Moralidade
 - ✅ **Novo sistema de reputação**: Suas ações agora influenciam sua reputação no jogo
 - ✅ **Novo comando `/moralidade`**: Verifique sua reputação atual e veja os bônus correspondentes
@@ -29,19 +41,34 @@
   - Valores do comando seduzir rebalanceados (50-200)
   - Cooldowns aumentados para todos os comandos
 
-## 🚀 Versão 1.0.0 (30 de Março de 2025)
-### Lançamento Inicial
-- ✅ **Sistema de economia básico**: Ganhe e gaste dinheiro
-- ✅ **Comando `/trabalhar`**: Ganhe dinheiro trabalhando honestamente
-- ✅ **Comando `/crime`**: Arrisque-se para ganhar dinheiro ilegalmente
-- ✅ **Comando `/seduzir`**: Nova forma de ganhar dinheiro com 50% de chance de sucesso
-- ✅ **Comando `/roubar`**: Tente roubar dinheiro de outros jogadores
-- ✅ **Comando `/ranking`**: Veja sua posição no ranking de riqueza
-- ✅ **Integração com Gemini API**: Respostas criativas e personalizadas para cada comando
-- ✅ **Sistemas base**:
-  - Banco de dados Firebase para armazenar dados dos usuários
-  - Sistema de cooldown para equilibrar a economia
-  - Embeds informativos para todos os comandos
+## 🚀 Versão 1.2.0 (31 de Março de 2025)
+### Sistema de Rankings Avançado
+- ✅ **Novos tipos de ranking**: Global, Servidor, Heróis e Vilões
+- ✅ **Moralidade integrada ao ranking**: 
+  - Heróis: Jogadores com moralidade > 0
+  - Vilões: Jogadores com moralidade < 0
+- ✅ **Ranking Global**:
+  - Exibe usuários de todos os servidores
+  - Ordenação por saldo
+- ✅ **Ranking de Servidor**:
+  - Exibe apenas usuários do servidor atual
+- ✅ **Personalização visual**:
+  - Cores diferentes para cada tipo de ranking
+  - Medalhas para os 3 primeiros colocados
+- ✅ **Informações detalhadas**:
+  - Posição do usuário no ranking
+  - Moralidade para rankings de heróis e vilões
+
+### Melhorias no Sistema de Moralidade
+- 🆕 **Refinamento dos títulos de moralidade**
+- 📊 **Estatísticas de moralidade mais detalhadas**
+- 🌈 **Cores dinâmicas baseadas na moralidade**
+
+### Correções e Otimizações
+- 🔧 **Correção de bugs no comando /ranking**
+- 🚀 **Melhor performance na busca e exibição de rankings**
+- 🛡️ **Tratamento de erros mais robusto**
+
 
 ---
 
