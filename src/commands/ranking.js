@@ -313,25 +313,21 @@ export async function execute(interaction) {
       error
     );
 
-    // Tentar enviar resposta de erro
-    if (interaction.deferred) {
-      try {
-        await interaction.editReply(
-          "Ocorreu um erro ao carregar o ranking. Tente novamente mais tarde."
-        );
-      } catch (e) {
-        console.error("Não foi possível editar a resposta:", e);
-      }
-    } else {
-      try {
-        await interaction.reply({
-          content:
-            "Ocorreu um erro ao carregar o ranking. Tente novamente mais tarde.",
+    try {
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({
+          content: "Ocorreu um erro ao carregar o ranking. Tente novamente mais tarde.",
           ephemeral: true,
         });
-      } catch (e) {
-        console.error("Não foi possível responder à interação:", e);
+      } else {
+        await interaction.reply({
+          content: "Ocorreu um erro ao carregar o ranking. Tente novamente mais tarde.",
+          ephemeral: true,
+        });
       }
+    } catch (e) {
+      console.error("Não foi possível enviar uma mensagem de erro:", e);
     }
+    
   }
 }
