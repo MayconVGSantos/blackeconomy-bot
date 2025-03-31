@@ -41,6 +41,40 @@ try {
  */
 class FirebaseService {
   /**
+   * Atualiza os dados de streak (diário ou semanal)
+   * @param {string} userId - ID do usuário
+   * @param {Object} options - Opções do streak
+   * @param {string} options.tipo - Tipo do streak ('diario' ou 'semanal')
+   * @param {number} options.valor - Valor atual do streak
+   * @param {string} options.ultimaColeta - Data da última coleta
+   * @returns {Promise<void>}
+   */
+  async updateStreak(userId, options) {
+    try {
+      const { tipo, valor, ultimaColeta } = options;
+      const database = getDatabase();
+
+      // Campo no Firebase para streak
+      const campoStreak = tipo === "diario" ? "streakDiaria" : "streakSemanal";
+
+      // Campo no Firebase para última coleta
+      const campoUltimaColeta =
+        tipo === "diario" ? "ultimaColetaDiaria" : "ultimaColetaSemanal";
+
+      // Atualizar os dados
+      const updates = {};
+      updates[campoStreak] = valor;
+      updates[campoUltimaColeta] = ultimaColeta;
+
+      const userRef = ref(database, `users/${userId}`);
+      await update(userRef, updates);
+    } catch (error) {
+      console.error(`Erro ao atualizar streak ${options.tipo}:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Obtém os dados de um usuário do Firebase
    * @param {string} userId - ID do usuário
    * @returns {Promise<Object>} - Dados do usuário
