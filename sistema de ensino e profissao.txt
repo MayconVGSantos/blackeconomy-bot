@@ -1,0 +1,415 @@
+Sistema Ampliado de Ensino e Profissões
+Sistema de Ensino Expandido
+Níveis Educacionais Detalhados
+
+Ensino Fundamental
+
+Nível inicial automático
+Custo: Gratuito
+Duração: 7 dias de estudo
+
+
+Ensino Médio
+
+Requisito: Ensino Fundamental completo
+Custo: R$ 3.000 (total)
+Duração: 15 dias de estudo
+Formações disponíveis: Regular, Técnico Básico
+
+
+Ensino Técnico
+
+Requisito: Ensino Médio completo
+Custo: R$ 10.000-20.000 (dependendo da área)
+Duração: 30 dias de estudo
+Áreas técnicas:
+
+Técnico em Informática
+Técnico em Administração
+Técnico em Enfermagem
+Técnico em Mecânica
+Técnico em Eletricidade
+Técnico em Segurança
+
+
+
+
+Graduação
+
+Requisito: Ensino Médio completo
+Custo: R$ 30.000-80.000 (dependendo do curso)
+Duração: 60 dias de estudo
+Cursos superiores:
+
+Medicina
+Direito
+Engenharia (Civil, Elétrica, Mecânica, Software)
+Administração
+Economia
+Contabilidade
+Psicologia
+Arquitetura
+Ciência da Computação
+Marketing
+
+
+
+
+Pós-Graduação
+
+Requisito: Graduação na área relacionada
+Custo: R$ 30.000-50.000 adicional
+Duração: 30 dias de estudo adicionais
+Especialidades (depende da graduação base)
+
+
+Doutorado
+
+Requisito: Pós-Graduação na área
+Custo: R$ 100.000
+Duração: 60 dias adicionais de estudo
+Acesso às profissões mais exclusivas e prestigiadas
+
+
+
+Sistema de Estudo Aprimorado
+
+Comando /estudar - Cooldown diário de 24h
+Pontos de estudo ganhos por dia:
+
+Base: 1 ponto
+Bônus moralidade positiva: +0.5 pontos
+Bônus por materiais de estudo (livros comprados): +0.5 pontos
+Bônus por mentoria (estudar com alguém formado): +1 ponto
+
+
+Exames periódicos:
+
+A cada 10 dias de estudo, um exame é obrigatório
+Comando /exame fazer
+Passar no exame: +3 pontos de estudo extras
+Falhar: -1 dia de progresso
+
+
+Bolsas de estudo:
+
+Disponíveis para jogadores com alta moralidade
+Reduz custos educacionais em 30-50%
+Comando /bolsa solicitar
+
+
+
+Profissões Expandidas
+Profissões Básicas (Ensino Médio)
+
+Vendedor
+
+Bônus: +10% em ganhos com /trabalhar
+Habilidade especial: Descontos de 5% na loja
+Requisitos: Ensino Médio completo
+
+
+Atendente
+
+Bônus: Redução de 5% em cooldowns
+Habilidade especial: Networking (ganha moedas por interagir com outros usuários)
+Requisitos: Ensino Médio completo
+
+
+Motorista
+
+Bônus: Redução de 10% em todos os cooldowns
+Habilidade especial: Entrega rápida (acelera processos)
+Requisitos: Ensino Médio completo, carteira de motorista (R$ 1.000)
+
+
+Segurança
+
+Bônus: 10% de chance de evitar ser roubado
+Habilidade especial: Detectar criminosos
+Requisitos: Ensino Médio completo, curso de segurança (R$ 2.000)
+
+
+Assistente Administrativo
+
+Bônus: Organização (+5% em todos os ganhos)
+Habilidade especial: Gerenciar agenda (reduz cooldowns)
+Requisitos: Ensino Médio completo
+
+
+
+Profissões Técnicas (Ensino Técnico)
+
+Técnico em Informática
+
+Bônus: 15% de chance de sucesso em crimes digitais
+Habilidade especial: /hackear (roubo digital com menor risco)
+Requisitos: Técnico em Informática, equipamento (R$ 5.000)
+
+
+Técnico em Administração
+
+Bônus: +15% em ganhos com /trabalhar
+Habilidade especial: /gerenciar (boost temporário para um grupo)
+Requisitos: Técnico em Administração
+
+
+Técnico em Enfermagem
+
+Bônus: Recupera 20% mais rápido de penalidades
+Habilidade especial: /primeiros_socorros (remove penalidades menores)
+Requisitos: Técnico em Enfermagem, kit médico (R$ 3.000)
+
+
+Técnico em Mecânica
+
+Bônus: Manutenção mais barata (-20%)
+Habilidade especial: /consertar (repara equipamentos com desconto)
+Requisitos: Técnico em Mecânica, ferramentas (R$ 8.000)
+
+
+Técnico em Eletricidade
+
+Bônus: Redução de custos em serviços (-15%)
+Habilidade especial: /instalar (melhora eficiência de sistemas)
+Requisitos: Técnico em Eletricidade, equipamento (R$ 6.000)
+
+
+Técnico em Segurança
+
+Bônus: 25% de chance de prevenir roubos
+Habilidade especial: /monitorar (detecta atividade suspeita)
+Requisitos: Técnico em Segurança, equipamento (R$ 10.000)
+
+
+
+Profissões Avançadas (Graduação)
+
+Médico
+
+Bônus: Imunidade a 30% das penalidades de saúde
+Habilidade especial: /curar (remove penalidades)
+Especialidades:
+
+Clínico Geral: /diagnosticar (previne futuras penalidades)
+Cirurgião: /operar (curas mais potentes)
+Psiquiatra: /terapia (bônus de moralidade)
+
+
+Requisitos: Graduação em Medicina, estágio (30 dias), licença médica (R$ 20.000)
+
+
+Advogado
+
+Bônus: Redução de 30% em multas
+Habilidade especial: /defender (reduz penas de outros jogadores)
+Especialidades:
+
+Criminal: Melhor defesa em crimes
+Tributário: Redução de impostos
+Corporativo: Aumento de lucros empresariais
+
+
+Requisitos: Graduação em Direito, aprovação na OAB (exame difícil)
+
+
+Engenheiro
+
+Bônus: Projetos 25% mais eficientes
+Habilidade especial: /projetar (criar melhorias)
+Especialidades:
+
+Civil: Construções
+Elétrico: Sistemas eletrônicos
+Mecânico: Maquinário
+Software: Programas e automação
+
+
+Requisitos: Graduação em Engenharia, CREA (R$ 15.000)
+
+
+Administrador
+
+Bônus: +25% em ganhos corporativos
+Habilidade especial: /gerenciar_empresa (boost em larga escala)
+Especialidades:
+
+Financeiro: Investimentos
+Marketing: Vendas
+Recursos Humanos: Gerenciamento de equipe
+
+
+Requisitos: Graduação em Administração, MBA (R$ 25.000)
+
+
+Economista
+
+Bônus: Análise de mercado (melhores investimentos)
+Habilidade especial: /investir (retornos 30% maiores)
+Especialidades:
+
+Macroeconomia: Análise global
+Microeconomia: Análise setorial
+Finanças: Mercado financeiro
+
+
+Requisitos: Graduação em Economia, certificação (R$ 15.000)
+
+
+Contador
+
+Bônus: Redução de impostos (-20%)
+Habilidade especial: /auditar (encontra erros que geram economia)
+Especialidades:
+
+Tributário: Foco em impostos
+Auditoria: Foco em verificação
+Controladoria: Foco em controle financeiro
+
+
+Requisitos: Graduação em Contabilidade, CRC (R$ 10.000)
+
+
+Psicólogo
+
+Bônus: Imunidade a efeitos negativos de moralidade
+Habilidade especial: /aconselhar (ajusta moralidade)
+Especialidades:
+
+Clínico: Tratamento individual
+Organizacional: Melhora de equipes
+Social: Intervenções em comunidade
+
+
+Requisitos: Graduação em Psicologia, CRP (R$ 12.000)
+
+
+Arquiteto
+
+Bônus: Designs exclusivos (valorização)
+Habilidade especial: /planejar (projetos de alta qualidade)
+Especialidades:
+
+Residencial: Casas e apartamentos
+Comercial: Escritórios e lojas
+Urbanismo: Planejamento urbano
+
+
+Requisitos: Graduação em Arquitetura, CAU (R$ 18.000)
+
+
+Cientista da Computação
+
+Bônus: Eficiência digital (+40% em tarefas digitais)
+Habilidade especial: /programar (automação de processos)
+Especialidades:
+
+IA: Sistemas inteligentes
+Segurança: Proteção de dados
+Desenvolvimento: Software avançado
+
+
+Requisitos: Graduação em Ciência da Computação, equipamentos (R$ 20.000)
+
+
+Profissional de Marketing
+
+Bônus: Aumento de vendas (+35%)
+Habilidade especial: /campanha (boost de vendas por tempo limitado)
+Especialidades:
+
+Digital: Plataformas online
+Estratégico: Planejamento de longo prazo
+Vendas: Conversão direta
+
+
+Requisitos: Graduação em Marketing, portfólio (30 dias para desenvolver)
+
+
+
+Profissões de Elite (Pós-Graduação/Doutorado)
+
+Neurocirurgião
+
+Requisitos: Médico nível máximo + Especialização em Cirurgia + Doutorado + 100 pacientes atendidos + Equipamento (R$ 200.000)
+Bônus: Capaz de curar qualquer condição
+Habilidade exclusiva: /transplante (transfere benefícios entre jogadores)
+
+
+Juiz
+
+Requisitos: Advogado nível máximo + 10 anos de profissão (100 dias reais) + Aprovação no exame da magistratura (0.1% de chance) + Moralidade > 80
+Bônus: Imunidade a qualquer acusação
+Habilidade exclusiva: /sentenciar (penalidades ou benefícios oficiais)
+
+
+CEO
+
+Requisitos: Administrador nível máximo + R$ 1.000.000 em capital + 5 negócios bem-sucedidos
+Bônus: Renda passiva de toda atividade econômica do servidor (0.1%)
+Habilidade exclusiva: /fundar (cria empresas que geram renda passiva)
+
+
+Cientista-Chefe
+
+Requisitos: Doutorado + 200 dias de pesquisa + R$ 500.000 em equipamentos
+Bônus: Descobertas revolucionárias (boost para todo o servidor)
+Habilidade exclusiva: /descobrir (cria novas tecnologias/recursos)
+
+
+Político
+
+Requisitos: Qualquer graduação + R$ 1.000.000 em campanha + Aprovação popular (votação real)
+Bônus: Influência sobre sistemas do servidor
+Habilidade exclusiva: /decretar (muda temporariamente regras do jogo)
+
+
+
+Sistema de Salários e Benefícios
+
+Salário base por nível educacional:
+
+Ensino Médio: +20% em trabalho
+Técnico: +50% em trabalho
+Graduação: +100% em trabalho
+Pós-Graduação: +200% em trabalho
+Doutorado: +400% em trabalho
+
+
+Tempo de serviço:
+
+A cada 10 dias na mesma profissão: +5% de bônus (acumulativo)
+Bônus máximo por tempo: +100%
+
+
+Aposentadoria:
+
+Após 365 dias em uma profissão: Renda passiva de 50% do último salário
+Comando /aposentar
+
+
+
+Oportunidades Especiais
+
+Concursos Públicos:
+
+Aparecem periodicamente
+Comando /concurso inscrever
+Dificuldade alta, mas recompensas garantidas
+Estabilidade (não pode ser demitido)
+
+
+Empreendedorismo:
+
+Alternativa às profissões tradicionais
+Comando /empreender [tipo]
+Alto risco, alto retorno
+Requer capital inicial significativo
+
+
+Freelancer:
+
+Trabalhos temporários de alta recompensa
+Comando /freelance procurar
+Não exige formação específica, mas paga menos que profissões formais
+

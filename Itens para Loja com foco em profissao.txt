@@ -1,0 +1,142 @@
+Itens para Loja com Foco em Profissões
+Para complementar seu sistema de profissões, uma loja com itens específicos seria ideal. Aqui estão sugestões de itens organizados por categorias relacionadas às profissões, com preços balanceados:
+1. Material Educacional
+Livros Didáticos
+
+Livro Básico: R$ 500 - Aumenta em 10% os pontos de estudo por 7 dias
+Manual Avançado: R$ 1.500 - Aumenta em 20% os pontos de estudo por 7 dias
+Enciclopédia Especializada: R$ 5.000 - Aumenta em 30% os pontos de estudo por 7 dias
+Compêndio Completo: R$ 10.000 - Aumenta em 50% os pontos de estudo por 7 dias
+
+Material de Preparação
+
+Simulado para Exames: R$ 2.000 - Aumenta chances de aprovação em 15%
+Curso Preparatório: R$ 5.000 - Aumenta chances de aprovação em 25%
+Tutor Particular: R$ 15.000 - Aumenta chances de aprovação em 40%
+
+2. Equipamentos Profissionais
+Equipamentos Básicos (Ensino Médio)
+
+Uniforme de Trabalho: R$ 2.000 - +5% em ganhos para profissões básicas
+Smartphone: R$ 3.000 - Reduz cooldowns em 5%
+Mochila Executiva: R$ 2.500 - +10% em XP de profissão
+
+Equipamentos Técnicos (Ensino Técnico)
+
+Kit de Ferramentas Básico: R$ 5.000 - Necessário para Técnico em Mecânica
+Equipamento de Segurança: R$ 8.000 - Necessário para Técnico em Segurança
+Computador: R$ 7.000 - Necessário para Técnico em Informática
+Kit de Primeiros Socorros: R$ 4.000 - Necessário para Técnico em Enfermagem
+Multímetro Profissional: R$ 6.000 - Necessário para Técnico em Eletricidade
+
+Equipamentos Avançados (Graduação)
+
+Estação de Trabalho: R$ 20.000 - +15% em ganhos para profissões avançadas
+Laptop de Alto Desempenho: R$ 15.000 - Necessário para profissões de TI
+Instrumentos Médicos: R$ 25.000 - Necessário para Médico
+Biblioteca Jurídica: R$ 20.000 - Necessário para Advogado
+Software Especializado: R$ 18.000 - +20% em eficiência para profissões digitais
+
+Equipamentos de Elite (Pós-Graduação/Doutorado)
+
+Laboratório Portátil: R$ 50.000 - Necessário para pesquisas avançadas
+Equipamento Cirúrgico: R$ 100.000 - Necessário para Neurocirurgião
+Servidor Dedicado: R$ 75.000 - Necessário para projetos de TI avançados
+Escritório Executivo: R$ 200.000 - Necessário para CEO, +25% em ganhos
+
+3. Licenças e Certificações
+Licenças Básicas
+
+Carteira de Motorista: R$ 1.000 - Necessária para Motorista
+Licença Comercial: R$ 3.000 - Necessária para Vendedor profissional
+Certificado de Segurança: R$ 2.000 - Necessário para Segurança
+
+Licenças Profissionais
+
+CRM (Conselho de Medicina): R$ 20.000 - Necessário para Médico
+OAB (Ordem dos Advogados): R$ 15.000 - Necessário para Advogado
+CREA (Conselho de Engenharia): R$ 15.000 - Necessário para Engenheiro
+CRC (Conselho de Contabilidade): R$ 10.000 - Necessário para Contador
+CRP (Conselho de Psicologia): R$ 12.000 - Necessário para Psicólogo
+CAU (Conselho de Arquitetura): R$ 18.000 - Necessário para Arquiteto
+
+Certificações Avançadas
+
+Certificação em Gestão de Projetos: R$ 25.000 - +15% em eficiência para Administradores
+Certificação em Segurança da Informação: R$ 30.000 - +20% em eficiência para profissionais de TI
+Certificação Financeira: R$ 35.000 - +25% em retorno de investimentos
+Especialização Médica: R$ 40.000 - Necessária para especialidades médicas
+
+4. Ferramentas Especiais
+Ferramentas para Médicos
+
+Estetoscópio Básico: R$ 5.000 - Necessário para diagnósticos
+Kit Cirúrgico: R$ 30.000 - Necessário para cirurgias
+Equipamento de Diagnóstico Avançado: R$ 80.000 - +30% em eficácia de tratamentos
+
+Ferramentas para Engenheiros
+
+Trena Digital: R$ 3.000 - +10% em precisão
+Software CAD: R$ 25.000 - Necessário para projetos avançados
+Estação Total: R$ 50.000 - +30% em eficiência de projetos
+
+Ferramentas para Advogados
+
+Códigos Jurídicos: R$ 8.000 - +15% em chances de sucesso
+Software Jurídico: R$ 20.000 - Reduz tempo de preparação
+Base de Jurisprudência: R$ 40.000 - +25% em chances de sucesso
+
+Ferramentas para TI
+
+Kit de Desenvolvimento: R$ 10.000 - Necessário para programadores
+Servidor de Teste: R$ 30.000 - +20% em eficiência
+Ambiente de Desenvolvimento Integrado: R$ 50.000 - +35% em produtividade
+
+5. Itens de Consumo
+Consumíveis Educacionais
+
+Café Extra Forte: R$ 200 - +2 pontos de estudo (uso único)
+Suplemento Cognitivo: R$ 500 - +5 pontos de estudo (uso único)
+Energia Cerebral: R$ 1.000 - Reduz cooldown de estudo em 4 horas
+
+Consumíveis Profissionais
+
+Lanche Energético: R$ 300 - Reduz cooldown de trabalho em 10%
+Bebida Energética: R$ 500 - +15% em ganhos no próximo trabalho
+Kit de Produtividade: R$ 1.000 - +25% em ganhos no próximo trabalho
+
+Consumíveis Premium
+
+Poção de Inspiração: R$ 5.000 - Garantia de sucesso no próximo exame
+Elixir da Produtividade: R$ 10.000 - Dobra ganhos do próximo trabalho
+Essência do Conhecimento: R$ 20.000 - +20 pontos de estudo imediatos
+
+6. Itens Especiais e Raros
+Itens de Prestígio
+
+Diploma Dourado: R$ 50.000 - Status visual, +5% em todos os ganhos
+Caneta de Assinatura Exclusiva: R$ 30.000 - Desbloqueia contratos especiais
+Troféu de Reconhecimento: R$ 100.000 - Desbloqueia missões exclusivas
+
+Itens de Aceleração de Carreira
+
+Conexões Influentes: R$ 200.000 - Pula um nível de educação
+Herança Familiar: R$ 500.000 - Capital inicial grande (gasto único)
+Mentoria VIP: R$ 300.000 - Acelera ganho de XP em profissão em 100% por 30 dias
+
+7. Imóveis para Profissionais
+Espaços de Trabalho
+
+Escritório Básico: R$ 100.000 - +10% em ganhos para profissões avançadas
+Consultório: R$ 250.000 - +25% em ganhos para médicos/psicólogos
+Escritório Executivo: R$ 500.000 - +40% em ganhos para profissões de elite
+Sede Corporativa: R$ 1.000.000 - +100% em ganhos, desbloqueio de empreendimento
+
+Balanceamento de Preços
+O balanceamento sugerido é baseado no seguinte:
+
+Progressão: Os itens mais básicos custam ~1-5% do capital que um jogador iniciante consegue acumular
+Médio Prazo: Itens técnicos custam ~10-20% do capital médio
+Longo Prazo: Itens de elite custam o suficiente para serem objetivos de longo prazo
+Investimento vs. Retorno: Itens mais caros oferecem benefícios proporcionalmente maiores
+Exclusividade: Alguns itens são intencionalmente caros para serem realmente exclusivos

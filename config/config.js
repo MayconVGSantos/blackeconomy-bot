@@ -46,6 +46,7 @@ export default {
     seduzir: parseInt(process.env.COOLDOWN_SEDUZIR) || 30, // Em minutos
     crime: parseInt(process.env.COOLDOWN_CRIME) || 60, // Em minutos
     roubar: parseInt(process.env.COOLDOWN_ROUBAR) || 60, // Em minutos
+    estudar: parseInt(process.env.COOLDOWN_ESTUDAR) || 1440, // 24 horas (em minutos)
   },
   firebase: {
     apiKey:
@@ -65,5 +66,19 @@ export default {
     databaseURL:
       process.env.FIREBASE_DATABASE_URL ||
       "https://blackeconomy-874ac-default-rtdb.firebaseio.com",
+  },
+  educacao: {
+    // Configurações para o sistema educacional
+    bolsa: {
+      moralidadeMinima: 30, // Moralidade mínima para bolsa
+      descontoMinimo: 30, // Desconto mínimo (%)
+      descontoMaximo: 50, // Desconto máximo (%)
+    },
+    exame: {
+      pontosMinimos: 0.5, // 50% dos pontos necessários para fazer exame
+      diasEntreExames: 10, // Dias entre exames
+      bonusAprovacao: 3, // Pontos extras por aprovar
+      penalReprovacao: 1, // Pontos perdidos por reprovar
+    },
   },
 };

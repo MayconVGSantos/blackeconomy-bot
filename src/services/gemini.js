@@ -50,6 +50,69 @@ class GeminiClient {
   }
 
   /**
+   * Retorna uma resposta de fallback quando a API falha
+   * @returns {string} - Resposta de fallback genérica
+   */
+  getFallbackResponse() {
+    const respostas = [
+      "Após muito trabalho, você conseguiu um valor razoável para suas despesas.",
+      "Seu esforço foi recompensado com um montante interessante.",
+      "Nem sempre o que fazemos vale o que recebemos, mas desta vez você teve sorte.",
+      "O mundo é cruel, mas às vezes ele te dá uma pausa e te recompensa.",
+    ];
+
+    return respostas[Math.floor(Math.random() * respostas.length)];
+  }
+
+  /**
+   * Gera uma resposta para o comando estudar
+   * @param {number} pontos - Pontos de estudo ganhos
+   * @param {string} nivel - Nível educacional atual
+   * @returns {Promise<string>} - Resposta gerada
+   */
+  async gerarRespostaEstudar(pontos, nivel) {
+    const prompt = `
+  Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
+  
+  Crie uma frase curta, engraçada e motivacional para o comando /estudar de um bot de Discord.
+  O usuário acabou de ganhar ${pontos} pontos de estudo para ${nivel}.
+  A frase deve incorporar os pontos de estudo de forma natural e explícita.
+  Seja criativo e incentive o usuário a continuar estudando. Limite a resposta a 1-2 frases curtas.
+  
+  Responda apenas com a frase, sem explicações adicionais.
+  `;
+
+    return this.generateResponse(prompt);
+  }
+
+  /**
+   * Gera uma resposta para o resultado de um exame
+   * @param {boolean} passou - Se o usuário passou no exame
+   * @param {string} nivel - Nível educacional
+   * @returns {Promise<string>} - Resposta gerada
+   */
+  async gerarRespostaExame(passou, nivel) {
+    const prompt = `
+  Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
+  
+  Crie uma frase curta e criativa sobre ${
+    passou ? "passar" : "reprovar"
+  } em um exame de ${nivel}.
+  A mensagem deve ser em português brasileiro, bem-humorada e ${
+    passou ? "celebrativa" : "consoladora"
+  }.
+  Seja criativo e ${
+    passou ? "comemore a conquista" : "anime o usuário a tentar novamente"
+  }.
+  Limite a resposta a 1-2 frases curtas.
+  
+  Responda apenas com a frase, sem explicações adicionais.
+  `;
+
+    return this.generateResponse(prompt);
+  }
+
+  /**
    * Gera uma resposta para o comando diario
    * @param {number} valor - Valor ganho em dinheiro
    * @param {number} streak - Streak atual

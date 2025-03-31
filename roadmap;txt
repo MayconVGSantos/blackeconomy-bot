@@ -1,0 +1,152 @@
+🚀 Fase 1: Sistema de Educação (4 semanas)
+Semana 1: Estrutura de Dados
+
+Criar tabelas no Firebase para armazenar dados educacionais dos usuários
+Implementar sistema de pontos de estudo e progresso educacional
+Desenvolver sistema de cooldown diário para o comando /estudar
+
+Semana 2: Implementação de Comandos Básicos
+
+Implementar comando /estudar (cooldown de 24h)
+Criar comando /nivel-educacional para visualizar progresso
+Desenvolver comando /exame para avaliações periódicas
+Implementar sistema de custo para cada nível educacional
+
+Semana 3: Níveis Educacionais
+
+Implementar progressão entre níveis:
+
+Ensino Fundamental (7 dias)
+Ensino Médio (15 dias)
+Ensino Técnico (30 dias, com diferentes áreas)
+Graduação (60 dias, com diferentes cursos)
+Pós-Graduação (30 dias adicionais)
+Doutorado (60 dias adicionais)
+
+
+
+Semana 4: Aprimoramentos
+
+Criar sistema de bolsas de estudo baseado na moralidade
+Implementar bônus por materiais de estudo (comprados na loja)
+Desenvolver sistema de mentoria (estudar com alguém formado)
+Integrar com sistema de moralidade existente
+
+🚀 Fase 2: Sistema de Profissões (5 semanas)
+Semana 1: Estrutura de Dados e Categorias
+
+Criar tabelas no Firebase para armazenar dados profissionais
+Implementar categorias de profissões:
+
+Profissões Básicas (Ensino Médio)
+Profissões Técnicas (Ensino Técnico)
+Profissões Avançadas (Graduação)
+Profissões de Elite (Pós-Graduação/Doutorado)
+
+
+
+Semana 2: Implementação de Profissões Básicas e Técnicas
+
+Desenvolver comando /trabalhar-como [profissão]
+Implementar requisitos educacionais por profissão
+Criar habilidades especiais por profissão
+Adicionar bônus de salário baseado em nível educacional
+
+Semana 3: Implementação de Profissões Avançadas e Elite
+
+Adicionar profissões com especialidades (Médico, Advogado, etc.)
+Implementar sistema de licenças profissionais (OAB, CRM, etc.)
+Desenvolver habilidades especiais para profissões avançadas
+Criar profissões de Elite com requisitos extremamente exigentes
+
+Semana 4: Sistema de Experiência Profissional
+
+Implementar sistema de experiência profissional (dias trabalhados)
+Criar bônus de salário baseado em tempo de serviço
+Desenvolver sistema de aposentadoria após 365 dias
+
+Semana 5: Expansão do Sistema Existente
+
+Integrar novas profissões com o comando /trabalhar existente
+Ajustar o comando /moralidade para mostrar status profissional
+Modificar o comando /perfil para incluir formação e profissão
+Criar comandos especiais baseados na profissão (ex: /curar, /defender)
+
+🚀 Fase 3: Sistema de Empresas (6 semanas)
+Semana 1: Estrutura de Dados
+
+Criar tabelas no Firebase para armazenar dados de empresas
+Definir tipos de empresas por nível educacional:
+
+Empresas de Nível Técnico (menores)
+Empresas de Nível Superior (médias)
+Empresas de Elite (grandes)
+
+
+
+Semana 2: Comandos Básicos de Empresas
+
+Implementar comando /empresa criar [tipo]
+Criar comando /empresa info para visualizar dados
+Desenvolver sistema de verificação de requisitos:
+
+Qualificação profissional
+Capital inicial
+Experiência mínima na profissão
+
+
+
+Semana 3: Mecânicas de Negócios
+
+Implementar sistema de renda passiva diária/semanal
+Criar sistema de manutenção mensal das empresas
+Desenvolver sistema de crescimento e expansão
+Implementar comando /empresa investir [valor]
+
+Semana 4: Sistema de Funcionários
+
+Criar sistema para contratar outros jogadores
+Implementar comando /empresa contratar @usuario
+Desenvolver sistema de salários e bônus para funcionários
+Criar sistema de demissão e renúncia
+
+Semana 5: Serviços Entre Jogadores
+
+Implementar serviços que empresas possam oferecer a outros usuários
+Criar mercado de serviços entre empresas
+Desenvolver sistema de contratos e parcerias
+Implementar sistema de avaliação de empresas
+
+Semana 6: Sistema Fiscal e Regulatório
+
+Criar sistema de impostos para empresas
+Implementar eventos aleatórios (inspeções, multas, bônus)
+Desenvolver sistema de reputação empresarial
+Criar ranking de empresas mais lucrativas
+
+🚀 Fase 4: Integração e Balanceamento (3 semanas)
+Semana 1: Integração com Sistemas Existentes
+
+Integrar sistema educacional com moralidade existente
+Ajustar sistema de profissões com economia atual
+Balancear empresas com os sistemas de cassino e trabalho
+Revisar valores de ganhos e custos em todos os sistemas
+
+Semana 2: Expansão da Loja
+
+Implementar novos itens na loja focados em profissões:
+
+Material Educacional
+Equipamentos Profissionais
+Licenças e Certificações
+Ferramentas Especiais
+Itens de Consumo
+
+
+
+Semana 3: Testes e Ajustes Finais
+
+Realizar testes extensivos de equilíbrio econômico
+Ajustar valores de ganhos, custos e cooldowns
+Implementar sistema anti-abuso e anti-exploits
+Finalizar documentação para usuários e administradores
