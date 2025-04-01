@@ -1,4 +1,4 @@
-// marketplace.js - Sistema de mercado entre jogadores
+// marketplace.js - Sistema de mercado entre jogadore
 import {
   SlashCommandBuilder,
   EmbedBuilder,
