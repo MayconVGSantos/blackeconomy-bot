@@ -1,4 +1,3 @@
-// @ts-nocheck
 // inventario.js - Com exibição detalhada de itens
 import {
   SlashCommandBuilder,
