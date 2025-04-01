@@ -47,7 +47,8 @@ const commandsWithCooldown = [
   { name: "roubar", emoji: "🔫", configKey: "roubar" },
   { name: "diario", emoji: "🎁", configKey: "diario", customTime: 86400000 }, // 24h em ms
   { name: "semanal", emoji: "📅", configKey: "semanal", customTime: 604800000 }, // 7 dias em ms
-  { name: "estudar", emoji: "📚", configKey: "estudar" }
+  { name: "estudar", emoji: "📚", configKey: "estudar" },
+  { name: "exame", emoji: "📝", customTime: 10 * 24 * 60 * 60 * 1000 }, // 10 dias em ms
 ];
 
     // Verificar cooldown para cada comando
