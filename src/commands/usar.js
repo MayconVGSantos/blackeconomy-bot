@@ -31,16 +31,26 @@ export async function autocomplete(interaction) {
     const inventory = await inventoryService.getUserInventory(userId);
 
     if (!inventory || !inventory.items) {
+      console.log("Sem itens no inventário");
       return interaction.respond([]);
     }
+
+    // Debug: Listar todos os itens do inventário
+    console.log("Itens no inventário:", inventory.items);
 
     // Filtrar itens usáveis
     const usableItems = [];
 
     for (const itemId in inventory.items) {
-      if (inventory.items[itemId].quantity <= 0) continue;
+      console.log(`Verificando item: ${itemId}, Quantidade: ${inventory.items[itemId].quantity}`);
+
+      if (inventory.items[itemId].quantity <= 0) {
+        console.log(`Item ${itemId} tem quantidade 0, pulando`);
+        continue;
+      }
 
       const item = storeItemsService.getItemById(itemId);
+      console.log(`Detalhes do item: `, item);
 
       if (item && item.usavel) {
         usableItems.push({
@@ -50,10 +60,14 @@ export async function autocomplete(interaction) {
       }
     }
 
+    console.log("Itens usáveis encontrados:", usableItems);
+
     // Filtrar por texto digitado
     const filtered = usableItems.filter((choice) =>
       choice.name.toLowerCase().includes(focusedValue)
     );
+
+    console.log("Itens filtrados:", filtered);
 
     await interaction.respond(filtered.slice(0, 25));
   } catch (error) {
@@ -69,8 +83,11 @@ async function interactionHandler(interaction) {
     const userId = interaction.user.id;
     const itemId = interaction.options.getString("item");
 
+    console.log(`Tentando usar item: ${itemId}`);
+
     // Verificar se o item existe
     const item = storeItemsService.getItemById(itemId);
+    console.log("Detalhes do item:", item);
 
     if (!item) {
       const embedErro = embedUtils.criarEmbedErro({

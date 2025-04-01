@@ -1,3 +1,4 @@
+// @ts-nocheck
 // inventario.js - Com exibição detalhada de itens
 import {
   SlashCommandBuilder,
@@ -35,6 +36,7 @@ export const data = new SlashCommandBuilder()
       )
   );
 
+  
 export async function execute(interaction) {
   try {
     await interaction.deferReply();
@@ -103,45 +105,63 @@ export async function execute(interaction) {
     }
 
     // Processar itens do inventário
-    let hasItems = false;
-    if (inventory.items && Object.keys(inventory.items).length > 0) {
-      // Agrupar itens por categoria
-      const itemsByCategory = {};
+let hasItems = false;
+console.log(`Processando inventário. Categoria selecionada: ${selectedCategory}`);
+console.log('Itens no inventário:', inventory.items);
 
-      // Processar cada item no inventário
-      for (const itemId in inventory.items) {
-        // Verificar se o item existe e tem quantidade maior que 0
-        if (inventory.items[itemId].quantity <= 0) continue;
+if (inventory.items && Object.keys(inventory.items).length > 0) {
+  // Agrupar itens por categoria
+  const itemsByCategory = {};
 
-        // Obter detalhes do item da loja
-        const itemDetails = storeItemsService.getItemById(itemId);
-        if (!itemDetails) continue; // Se o item não for encontrado, pular
+  // Processar cada item no inventário
+  for (const itemId in inventory.items) {
+    console.log(`Verificando item: ${itemId}, Quantidade: ${inventory.items[itemId].quantity}`);
 
-        // Filtrar por categoria selecionada
-        if (
-          selectedCategory !== "all" &&
-          itemDetails.category !== selectedCategory
-        )
-          continue;
+    // Verificar se o item existe e tem quantidade maior que 0
+    if (inventory.items[itemId].quantity <= 0) {
+      console.log(`Item ${itemId} tem quantidade 0, pulando`);
+      continue;
+    }
 
-        // Inicializar categoria se necessário
-        if (!itemsByCategory[itemDetails.category]) {
-          itemsByCategory[itemDetails.category] = [];
-        }
+    // Obter detalhes do item da loja
+    const itemDetails = storeItemsService.getItemById(itemId);
+    console.log(`Detalhes do item: `, itemDetails);
 
-        // Adicionar item à categoria
-        itemsByCategory[itemDetails.category].push({
-          id: itemId,
-          name: itemDetails.name,
-          icon: itemDetails.icon,
-          quantity: inventory.items[itemId].quantity,
-          description: itemDetails.description,
-          usavel: itemDetails.usavel,
-          lastUsed: inventory.items[itemId].lastUsed,
-        });
+    if (!itemDetails) {
+      console.log(`Item ${itemId} não encontrado na loja, pulando`);
+      continue;
+    }
 
-        hasItems = true;
-      }
+    // Filtrar por categoria selecionada
+    if (
+      selectedCategory !== "all" &&
+      itemDetails.category !== selectedCategory
+    ) {
+      console.log(`Item ${itemId} não pertence à categoria ${selectedCategory}, pulando`);
+      continue;
+    }
+
+    // Inicializar categoria se necessário
+    if (!itemsByCategory[itemDetails.category]) {
+      itemsByCategory[itemDetails.category] = [];
+    }
+
+    // Adicionar item à categoria
+    itemsByCategory[itemDetails.category].push({
+      id: itemId,
+      name: itemDetails.name,
+      icon: itemDetails.icon,
+      quantity: inventory.items[itemId].quantity,
+      description: itemDetails.description,
+      usavel: itemDetails.usavel,
+      lastUsed: inventory.items[itemId].lastUsed,
+    });
+
+    hasItems = true;
+  }
+
+  console.log('Itens agrupados por categoria:', itemsByCategory);
+}
 
       // Adicionar campos ao embed para cada categoria de item
       for (const category in itemsByCategory) {
@@ -210,7 +230,7 @@ export async function execute(interaction) {
       const noItemsMessage = isOwnInventory
         ? "Você não possui nenhum item em seu inventário. Use o comando `/loja` para comprar itens!"
         : `${targetUser.username} não possui nenhum item em seu inventário.`;
-
+    
       embed.addFields({
         name: "📦 Inventário vazio",
         value: noItemsMessage,
@@ -253,6 +273,7 @@ export async function execute(interaction) {
           .setEmoji("🔮")
       );
     }
+    
 
     // Criar menu para filtrar categorias
     const filterMenu = new ActionRowBuilder().addComponents(
@@ -365,45 +386,48 @@ export async function execute(interaction) {
       }
     });
 
-    collector.on("end", async (collected, reason) => {
-      if (reason === "time") {
-        // Desativar componentes quando expirar
-        const disabledComponents = components.map((row) => {
-          const disabledRow = new ActionRowBuilder();
-
-          row.components.forEach((component) => {
-            if (component.type === ComponentType.Button) {
-              disabledRow.addComponents(
-                ButtonBuilder.from(component).setDisabled(true)
-              );
-            } else if (component.type === ComponentType.StringSelect) {
-              disabledRow.addComponents(
-                StringSelectMenuBuilder.from(component)
-                  .setDisabled(true)
-                  .setPlaceholder("Menu expirado")
-              );
-            }
+    try {
+      collector.on("end", async (collected, reason) => {
+        if (reason === "time") {
+          // Desativar componentes quando expirar
+          const disabledComponents = components.map((row) => {
+            const disabledRow = new ActionRowBuilder();
+    
+            row.components.forEach((component) => {
+              if (component.type === ComponentType.Button) {
+                disabledRow.addComponents(
+                  ButtonBuilder.from(component).setDisabled(true)
+                );
+              } else if (component.type === ComponentType.StringSelect) {
+                disabledRow.addComponents(
+                  StringSelectMenuBuilder.from(component)
+                    .setDisabled(true)
+                    .setPlaceholder("Menu expirado")
+                );
+              }
+            });
+    
+            return disabledRow;
           });
-
-          return disabledRow;
-        });
-
-        await interaction
-          .editReply({ components: disabledComponents })
-          .catch(() => {});
-      }
-    });
-  } catch (error) {
-    console.error("Erro ao executar comando inventario:", error);
-
-    // Criar embed de erro
-    const embedErro = embedUtils.criarEmbedErro({
-      usuario: interaction.user.username,
-      titulo: "Erro no Comando",
-      mensagem:
-        "Ocorreu um erro ao processar o comando. Tente novamente mais tarde.",
-    });
-
-    return interaction.editReply({ embeds: [embedErro] });
+    
+          try {
+            await interaction.editReply({ components: disabledComponents });
+          } catch (editError) {
+            console.error("Erro ao editar resposta:", editError);
+          }
+        }
+      });
+    } catch (error) {
+      console.error("Erro ao executar comando inventario:", error);
+    
+      // Criar embed de erro
+      const embedErro = embedUtils.criarEmbedErro({
+        usuario: interaction.user.username,
+        titulo: "Erro no Comando",
+        mensagem:
+          "Ocorreu um erro ao processar o comando. Tente novamente mais tarde.",
+      });
+    
+      return interaction.editReply({ embeds: [embedErro] });
+    }
   }
-}
