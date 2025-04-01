@@ -1,4 +1,4 @@
-// loja.js - Com formatação brasileira
+// loja.js - Versão melhorada para trabalhar com a nova estrutura
 import {
   SlashCommandBuilder,
   ActionRowBuilder,
@@ -22,7 +22,12 @@ export const data = new SlashCommandBuilder()
       .setName("categoria")
       .setDescription("Categoria de itens que deseja ver")
       .setRequired(false)
-      .addChoices({ name: "🎰 Cassino", value: "casino" })
+      .addChoices(
+        { name: "🎰 Cassino", value: "casino" },
+        { name: "🧪 Consumíveis", value: "consumiveis" },
+        { name: "✨ Status VIP", value: "vip" },
+        { name: "🌟 Itens Especiais", value: "especiais" }
+      )
   );
 
 export async function execute(interaction) {
@@ -32,7 +37,7 @@ export async function execute(interaction) {
     const userId = interaction.user.id;
     let selectedCategory = interaction.options.getString("categoria");
 
-    // Se nenhuma categoria foi selecionada, mostrar o menu pricipal
+    // Se nenhuma categoria foi selecionada, mostrar o menu principal
     if (!selectedCategory) {
       return await showMainMenu(interaction, userId);
     }
@@ -78,11 +83,6 @@ async function showMainMenu(interaction, userId) {
     return interaction.editReply({ embeds: [embed], components: [] });
   }
 
-  // Como temos apenas a categoria de cassino, direcionar para ela automaticamente
-  if (categories.length === 1 && categories[0] === "casino") {
-    return await showCategoryItems(interaction, userId, "casino");
-  }
-
   // Criar o menu de seleção de categorias
   const selectRow = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
@@ -94,6 +94,7 @@ async function showMainMenu(interaction, userId) {
             label: storeItemsService.getCategoryDisplayName(category),
             value: category,
             emoji: storeItemsService.getCategoryIcon(category),
+            description: getDescricaoCategoria(category),
           };
         })
       )
@@ -122,7 +123,7 @@ async function showMainMenu(interaction, userId) {
         inline: true,
       }
     )
-    .setFooter({ text: "Use o menu abaixo para navegar." })
+    .setFooter({ text: "Use o menu abaixo para navegar entre as categorias." })
     .setTimestamp();
 
   // Enviar a mensagem com o menu
@@ -134,7 +135,7 @@ async function showMainMenu(interaction, userId) {
   // Criar coletor de interações para o menu
   const collector = reply.createMessageComponentCollector({
     componentType: ComponentType.StringSelect,
-    time: 60000, // 1 minuto
+    time: 180000, // 3 minutos
   });
 
   collector.on("collect", async (i) => {
@@ -170,6 +171,22 @@ async function showMainMenu(interaction, userId) {
         .catch(console.error);
     }
   });
+}
+
+/**
+ * Retorna uma descrição curta para cada categoria
+ * @param {string} category - Nome da categoria
+ * @returns {string} - Descrição da categoria
+ */
+function getDescricaoCategoria(category) {
+  const descricoes = {
+    casino: "Fichas e itens para jogos de azar",
+    consumiveis: "Potenciadores temporários",
+    vip: "Status especial com benefícios",
+    especiais: "Itens raros e poderosos",
+  };
+
+  return descricoes[category] || "Itens diversos";
 }
 
 /**
@@ -211,24 +228,73 @@ async function showCategoryItems(
     return;
   }
 
-  // Criar descrição dos itens
-  const itemsDescription = items
-    .map((item, index) => {
-      return `**${index + 1}. ${item.icon} ${
-        item.name
-      }**\nPreço: ${formatarDinheiro(item.price)}\n${item.description}`;
-    })
-    .join("\n\n");
+  // Agrupar itens por tier, se disponível
+  const itemsByTier = {};
+  items.forEach((item) => {
+    const tier = item.tier || "regular";
+    if (!itemsByTier[tier]) {
+      itemsByTier[tier] = [];
+    }
+    itemsByTier[tier].push(item);
+  });
+
+  // Ordenar tiers por importância
+  const tierOrder = {
+    básico: 1,
+    regular: 2,
+    premium: 3,
+    rare: 4,
+    legendary: 5,
+    deluxe: 6,
+    eternal: 7,
+  };
+
+  // Criar lista de itens ordenada por tier
+  let formattedItems = "";
+
+  // Processar tiers em ordem
+  Object.keys(itemsByTier)
+    .sort((a, b) => (tierOrder[a] || 0) - (tierOrder[b] || 0))
+    .forEach((tier) => {
+      // Adicionar separador de tier se houver mais de um tier
+      if (Object.keys(itemsByTier).length > 1) {
+        let tierTitle = tier.charAt(0).toUpperCase() + tier.slice(1);
+
+        // Adicionar ícones para tiers
+        let tierIcon = "📦";
+        if (tier === "básico") tierIcon = "🔹";
+        else if (tier === "premium") tierIcon = "🔶";
+        else if (tier === "rare") tierIcon = "💠";
+        else if (tier === "legendary") tierIcon = "🔱";
+        else if (tier === "deluxe") tierIcon = "💫";
+        else if (tier === "eternal") tierIcon = "✴️";
+
+        formattedItems += `\n## ${tierIcon} ${tierTitle}\n\n`;
+      }
+
+      // Adicionar itens deste tier
+      itemsByTier[tier].forEach((item, index) => {
+        // Verificar se o usuário pode comprar este item
+        const canAfford = saldo >= item.price;
+        const priceText = canAfford
+          ? formatarDinheiro(item.price)
+          : `${formatarDinheiro(item.price)} (Saldo insuficiente)`;
+
+        formattedItems += `**${index + 1}. ${item.icon} ${item.name}**\n`;
+        formattedItems += `💰 Preço: ${priceText}\n`;
+        formattedItems += `${item.description}\n\n`;
+      });
+    });
 
   // Criar o embed dos itens da categoria
   const embed = new EmbedBuilder()
-    .setColor(0xffd700) // Dourado
+    .setColor(storeItemsService.getCategoryColor(category))
     .setTitle(
       `${storeItemsService.getCategoryIcon(
         category
       )} ${storeItemsService.getCategoryDisplayName(category)}`
     )
-    .setDescription(itemsDescription)
+    .setDescription(formattedItems)
     .addFields({
       name: "💰 Seu Saldo",
       value: formatarDinheiro(saldo),
@@ -242,19 +308,39 @@ async function showCategoryItems(
   // Criar os botões de compra
   const rows = [];
 
-  // Botões de compra (max 5 por linha, max 5 linhas)
-  for (let i = 0; i < Math.min(items.length, 5); i++) {
-    const itemButtons = new ActionRowBuilder();
+  // Botões de compra (limitados a 5 por linha, máximo 3 linhas para itens)
+  // Reagrupar itens em ordem plana para os botões
+  const allItems = [];
+  Object.values(itemsByTier).forEach((tierItems) => {
+    allItems.push(...tierItems);
+  });
 
-    itemButtons.addComponents(
-      new ButtonBuilder()
-        .setCustomId(`buy_${items[i].id}`)
-        .setLabel(`Comprar ${items[i].name}`)
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji(items[i].icon)
-    );
+  // Máximo de 15 botões (5 por linha, 3 linhas)
+  const maxButtons = 15;
+  const buttonsToCreate = Math.min(allItems.length, maxButtons);
 
-    rows.push(itemButtons);
+  // Criar linhas de botões (máximo 5 botões por linha)
+  for (let i = 0; i < buttonsToCreate; i += 5) {
+    const itemRow = new ActionRowBuilder();
+
+    // Adicionar até 5 botões nesta linha
+    for (let j = i; j < i + 5 && j < buttonsToCreate; j++) {
+      const item = allItems[j];
+      const canAfford = saldo >= item.price;
+
+      itemRow.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`buy_${item.id}`)
+          .setLabel(`${item.name} (${formatarDinheiro(item.price)})`)
+          .setStyle(canAfford ? ButtonStyle.Primary : ButtonStyle.Secondary)
+          .setEmoji(item.icon)
+          .setDisabled(!canAfford)
+      );
+    }
+
+    if (itemRow.components.length > 0) {
+      rows.push(itemRow);
+    }
   }
 
   // Linha de navegação
@@ -266,17 +352,14 @@ async function showCategoryItems(
       .setEmoji("❌")
   );
 
-  // Adicionar botão para voltar apenas se houver mais de uma categoria
-  const categories = storeItemsService.getCategories();
-  if (categories.length > 1) {
-    navigationRow.addComponents(
-      new ButtonBuilder()
-        .setCustomId("store_back")
-        .setLabel("Voltar")
-        .setStyle(ButtonStyle.Secondary)
-        .setEmoji("⬅️")
-    );
-  }
+  // Adicionar botão para voltar
+  navigationRow.addComponents(
+    new ButtonBuilder()
+      .setCustomId("store_back")
+      .setLabel("Voltar às Categorias")
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji("⬅️")
+  );
 
   rows.push(navigationRow);
 
@@ -297,7 +380,7 @@ async function showCategoryItems(
   // Criar coletor de interações para os botões
   const collector = reply.createMessageComponentCollector({
     componentType: ComponentType.Button,
-    time: 60000, // 1 minuto
+    time: 180000, // 3 minutos
   });
 
   collector.on("collect", async (i) => {
@@ -413,7 +496,13 @@ async function buyItem(interaction, userId, itemId, buttonInteraction) {
     );
 
     // 2. Adicionar o item ao inventário
-    await inventoryService.addItem(userId, itemId);
+    if (item.id.startsWith("fichas_cassino_")) {
+      // Para fichas de cassino, adicionar diretamente ao inventário
+      await inventoryService.addCasinoChips(userId, item.quantidade);
+    } else {
+      // Para outros itens
+      await inventoryService.addItem(userId, itemId);
+    }
 
     // 3. Exibir mensagem de confirmação
     const embedSucesso = new EmbedBuilder()
@@ -424,11 +513,29 @@ async function buyItem(interaction, userId, itemId, buttonInteraction) {
           item.price
         )}**.`
       )
-      .addFields({
-        name: "💰 Novo Saldo",
-        value: formatarDinheiro(novoSaldo),
-        inline: true,
-      })
+      .addFields(
+        {
+          name: "💰 Novo Saldo",
+          value: formatarDinheiro(novoSaldo),
+          inline: true,
+        },
+        {
+          name: "🛒 Item Adquirido",
+          value: item.description,
+          inline: true,
+        }
+      );
+
+    // Adicionar instrução de uso se for um item usável
+    if (item.usavel) {
+      embedSucesso.addFields({
+        name: "ℹ️ Como Usar",
+        value: `Use o comando \`/usar ${item.name}\` para utilizar este item.`,
+        inline: false,
+      });
+    }
+
+    embedSucesso
       .setFooter({ text: `Comprado por ${interaction.user.username}` })
       .setTimestamp();
 
