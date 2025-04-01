@@ -1,4 +1,4 @@
-// tempo-espera.js - Comando corrigido para verificar todos os cooldowns
+// tempo-espera.js - Corrigido para resolver o problema com o cooldown do comando estudar
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import firebaseService from "../services/firebase.js";
 import config from "../../config/config.js";
@@ -23,7 +23,8 @@ export async function execute(interaction) {
     // Verificar se está consultando outro usuário
     const targetUser =
       interaction.options.getUser("usuario") || interaction.user;
-    const isOwnCooldown = targetUser.id === interaction.user.id;
+    const userId = targetUser.id;
+    const isOwnCooldown = userId === interaction.user.id;
 
     // Se estiver verificando cooldown de outro usuário, verificar permissões
     if (!isOwnCooldown) {
@@ -56,17 +57,31 @@ export async function execute(interaction) {
         emoji: "📅",
         customTime: 604800000, // 7 dias em ms
       },
-      { 
-        name: "estudar", 
-        emoji: "📚", 
+      {
+        name: "estudar",
+        emoji: "📚",
         customTime: 86400000, // 24h em ms
       },
-      { 
-        name: "exame", 
-        emoji: "📝", 
-        customTime: 10 * 24 * 60 * 60 * 1000 // 10 dias em ms
+      {
+        name: "exame",
+        emoji: "📝",
+        customTime: 10 * 24 * 60 * 60 * 1000, // 10 dias em ms
       },
     ];
+
+    // Verificação especial para o comando estudar
+    // Consultando diretamente o último uso do comando estudar
+    let estudarLastUsage = null;
+    try {
+      const database = getDatabase();
+      const cooldownRef = ref(database, `users/${userId}/cooldowns/estudar`);
+      const snapshot = await get(cooldownRef);
+      if (snapshot.exists()) {
+        estudarLastUsage = snapshot.val();
+      }
+    } catch (error) {
+      console.error("Erro ao verificar último uso do comando estudar:", error);
+    }
 
     // Verificar cooldown para cada comando
     const cooldownResults = await Promise.all(
@@ -80,8 +95,26 @@ export async function execute(interaction) {
           cooldownTimeMs = cooldownTimeMinutes * 60000;
         }
 
+        // Usar a verificação especial para o comando estudar
+        if (cmd.name === "estudar" && estudarLastUsage) {
+          const now = Date.now();
+          const timeElapsed = now - estudarLastUsage;
+          const tempoRestante = cooldownTimeMs - timeElapsed;
+
+          // Se ainda está em cooldown
+          if (tempoRestante > 0) {
+            return {
+              ...cmd,
+              emCooldown: true,
+              tempoRestante: tempoRestante,
+              cooldownTotal: cooldownTimeMs,
+            };
+          }
+        }
+
+        // Para os outros comandos, usar a verificação normal
         const result = await firebaseService.checkCooldown(
-          targetUser.id,
+          userId,
           cmd.name,
           cooldownTimeMs
         );
@@ -107,12 +140,12 @@ export async function execute(interaction) {
     // Adicionar campo para cada comando
     for (const cmd of cooldownResults) {
       let statusText;
-      
+
       if (cmd.emCooldown) {
         const tempoFormatado = formatarTempoEspera(cmd.tempoRestante);
-        statusText = `⏳ **Disponível em:** ${tempoFormatado}`;
+        statusText = `⏳ Disponível em:\n${tempoFormatado}`;
       } else {
-        statusText = "✅ **Disponível agora!**";
+        statusText = "✅ Disponível agora!";
       }
 
       embed.addFields({
@@ -131,3 +164,6 @@ export async function execute(interaction) {
     );
   }
 }
+
+// Importações necessárias para a verificação especial
+import { getDatabase, ref, get } from "firebase/database";
