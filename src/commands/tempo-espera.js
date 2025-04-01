@@ -39,14 +39,16 @@ export async function execute(interaction) {
       }
     }
 
-    // Lista de comandos com cooldown
-    const commandsWithCooldown = [
-      { name: "trabalhar", emoji: "💼", configKey: "trabalhar" },
-      { name: "seduzir", emoji: "💋", configKey: "seduzir" },
-      { name: "crime", emoji: "🔪", configKey: "crime" },
-      { name: "roubar", emoji: "🔫", configKey: "roubar" },
-      // Adicione outros comandos com cooldown aqui
-    ];
+    // Lista completa de comandos com cooldown
+const commandsWithCooldown = [
+  { name: "trabalhar", emoji: "💼", configKey: "trabalhar" },
+  { name: "seduzir", emoji: "💋", configKey: "seduzir" },
+  { name: "crime", emoji: "🔪", configKey: "crime" },
+  { name: "roubar", emoji: "🔫", configKey: "roubar" },
+  { name: "diario", emoji: "🎁", configKey: "diario", customTime: 86400000 }, // 24h em ms
+  { name: "semanal", emoji: "📅", configKey: "semanal", customTime: 604800000 }, // 7 dias em ms
+  { name: "estudar", emoji: "📚", configKey: "estudar" }
+];
 
     // Verificar cooldown para cada comando
     const cooldownResults = await Promise.all(
