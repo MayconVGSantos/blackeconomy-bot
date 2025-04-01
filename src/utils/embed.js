@@ -402,3 +402,7 @@ class EmbedUtils {
       .setTimestamp();
   }
 }
+
+// Criar uma instância e exportá-la como padrão (default export)
+const embedUtils = new EmbedUtils();
+export default embedUtils;
