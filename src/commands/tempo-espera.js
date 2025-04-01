@@ -119,7 +119,6 @@ export async function execute(interaction) {
 
       embed.addFields({
         name: `${cmd.emoji} /${cmd.name}`,
-        value: `${status}\nTempo total: ${cooldownFormatado}`,
         inline: true,
       });
     });
