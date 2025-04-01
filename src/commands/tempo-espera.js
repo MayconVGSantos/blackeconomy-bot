@@ -40,16 +40,26 @@ export async function execute(interaction) {
     }
 
     // Lista completa de comandos com cooldown
-const commandsWithCooldown = [
-  { name: "trabalhar", emoji: "💼", configKey: "trabalhar" },
-  { name: "seduzir", emoji: "💋", configKey: "seduzir" },
-  { name: "crime", emoji: "🔪", configKey: "crime" },
-  { name: "roubar", emoji: "🔫", configKey: "roubar" },
-  { name: "diario", emoji: "🎁", configKey: "diario", customTime: 86400000 }, // 24h em ms
-  { name: "semanal", emoji: "📅", configKey: "semanal", customTime: 604800000 }, // 7 dias em ms
-  { name: "estudar", emoji: "📚", configKey: "estudar" },
-  { name: "exame", emoji: "📝", customTime: 10 * 24 * 60 * 60 * 1000 }, // 10 dias em ms
-];
+    const commandsWithCooldown = [
+      { name: "trabalhar", emoji: "💼", configKey: "trabalhar" },
+      { name: "seduzir", emoji: "💋", configKey: "seduzir" },
+      { name: "crime", emoji: "🔪", configKey: "crime" },
+      { name: "roubar", emoji: "🔫", configKey: "roubar" },
+      {
+        name: "diario",
+        emoji: "🎁",
+        configKey: "diario",
+        customTime: 86400000,
+      }, // 24h em ms
+      {
+        name: "semanal",
+        emoji: "📅",
+        configKey: "semanal",
+        customTime: 604800000,
+      }, // 7 dias em ms
+      { name: "estudar", emoji: "📚", configKey: "estudar" },
+      { name: "exame", emoji: "📝", customTime: 10 * 24 * 60 * 60 * 1000 }, // 10 dias em ms
+    ];
 
     // Verificar cooldown para cada comando
     const cooldownResults = await Promise.all(
