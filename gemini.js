@@ -1,144 +1,229 @@
-// gemini.js - versão atualizada com melhor tratamento de erros
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import dotenv from 'dotenv';
-import config from '../../config/config.js';
+// gemini.js
+import {
+  GoogleGenerativeAI,
+  HarmCategory,
+  HarmBlockThreshold,
+} from "@google/generative-ai";
+import dotenv from "dotenv";
 
 dotenv.config();
 
 /**
  * Cliente otimizado para a API Gemini
- * Utilizando o modelo Gemini mais recente para melhor desempenho
- * e tratamento de erros aprimorado
+ * Utilizando o modelo Gemini 2.0 Flash para melhor desempenho,
+ * respostas mais criativas e tratamento de erros aprimorado
  */
 class GeminiClient {
   constructor() {
-    this.apiKey = process.env.GEMINI_API_KEY || config.api.gemini.apiKey;
+    this.apiKey = process.env.GEMINI_API_KEY;
     this.genAI = new GoogleGenerativeAI(this.apiKey);
-    
-    // Usar um modelo de fallback se o principal falhar
-    this.models = {
-      primary: "gemini-1.5-flash",
-      fallback: "gemini-1.0-pro"
-    };
-    
-    this.model = this.genAI.getGenerativeModel({ model: this.models.primary });
-    this.fallbackModel = this.genAI.getGenerativeModel({ model: this.models.fallback });
-    
-    // Verificar se a API Key é válida
-    this.validateApiKey();
-  }
 
-  /**
-   * Valida se a API Key é válida
-   */
-  async validateApiKey() {
-    try {
-      if (!this.apiKey || this.apiKey === "AIzaSyDxqp5Q4LMVowmML6Pj2pAXqBLdD2k9_uI") {
-        console.warn('\x1b[33m%s\x1b[0m', 'AVISO: Chave da API Gemini inválida ou não configurada corretamente.');
-        console.warn('\x1b[33m%s\x1b[0m', 'Obtenha uma chave em https://makersuite.google.com/app/apikey e configure-a no arquivo .env');
-        this.validApiKey = false;
-      } else {
-        // Testar a API com uma requisição simples
-        await this.model.generateContent("Test");
-        this.validApiKey = true;
-        console.log('API Gemini conectada com sucesso!');
-      }
-    } catch (error) {
-      console.error('Erro ao validar API Gemini:', error.message);
-      this.validApiKey = false;
-      
-      // Tenta o modelo de fallback
-      try {
-        await this.fallbackModel.generateContent("Test");
-        console.log('Usando modelo de fallback para Gemini API');
-        this.model = this.fallbackModel;
-        this.validApiKey = true;
-      } catch (fallbackError) {
-        console.error('Erro ao usar modelo de fallback:', fallbackError.message);
-      }
-    }
-  }
-
-  /**
-   * Gera respostas de fallback quando a API falha
-   * @param {string} comando - Nome do comando
-   * @param {number} valor - Valor ganho/perdido
-   * @param {boolean} ganhou - Se ganhou ou perdeu
-   * @returns {string} - Resposta gerada localmente
-   */
-  generateFallbackResponse(comando, valor, ganhou = true) {
-    const valorFormatado = Math.abs(valor).toFixed(2);
-    
-    // Respostas pré-definidas para quando a API falha
-    const fallbackRespostas = {
-      trabalhar: [
-        `Uau, você trabalhou 12 horas e ganhou apenas R$${valorFormatado}. O capitalismo agradece seu sacrifício.`,
-        `R$${valorFormatado} por um dia de trabalho? Até escravidão parece oferecer melhores benefícios.`,
-        `Parabéns pelos R$${valorFormatado}! Já dá pra comprar um pacote de miojo e fingir que é gente.`,
-        `R$${valorFormatado} pelo seu suor. Nem para comprar um antidepressivo depois dessa jornada de trabalho.`
-      ],
-      seduzir: {
-        ganhou: [
-          `Você seduziu alguém e conseguiu R$${valorFormatado}. Parabéns por monetizar seu charme!`,
-          `Uau! R$${valorFormatado} por alguns minutos de flerte? Sua dignidade vale menos do que imaginei.`,
-          `R$${valorFormatado} na conta! Parece que alguém achou que sua companhia vale mais que um jantar barato.`,
-          `Ganhou R$${valorFormatado} seduzindo alguém. Você seria ótimo vendendo carros usados!`
-        ],
-        perdeu: [
-          `Gastou R$${valorFormatado} tentando seduzir alguém que claramente tem padrões. Que embaraçoso.`,
-          `Perdeu R$${valorFormatado} na tentativa. Nem seu dinheiro conseguiu compensar sua falta de personalidade.`,
-          `R$${valorFormatado} jogados fora! Talvez um curso de autoajuda seja um investimento melhor.`,
-          `Menos R$${valorFormatado} na conta. Nem pagando consegue que alguém te suporte por mais de 5 minutos.`
-        ]
+    // Configurar modelo com configurações otimizadas para respostas criativas
+    this.model = this.genAI.getGenerativeModel({
+      model: "gemini-2.0-flash",
+      generationConfig: {
+        temperature: 0.9, // Maior temperatura para respostas mais criativas
+        topP: 0.95, // Amostragem de probabilidade mais diversa
+        topK: 40, // Maior diversidade de tokens
+        maxOutputTokens: 150, // Limite de tokens para resposta concisa
       },
-      crime: {
-        ganhou: [
-          `Você roubou R$${valorFormatado} e não foi pego. Ótimo começo para sua carreira no crime!`,
-          `R$${valorFormatado} obtidos ilegalmente! Sua família estaria orgulhosa... ou não.`,
-          `Ganhou R$${valorFormatado} com atividades questionáveis. Pelo menos não precisou declarar no imposto de renda.`,
-          `R$${valorFormatado} de lucro no crime! Quem precisa de trabalho honesto quando se tem tão pouca moral?`
-        ],
-        perdeu: [
-          `Tentou ser criminoso e perdeu R$${valorFormatado}. Nem para o crime você serve.`,
-          `R$${valorFormatado} de prejuízo! Criminoso incompetente é pleonasmo no seu caso.`,
-          `Perdeu R$${valorFormatado} tentando cometer um crime. Isso é o que chamam de taxa de burrice.`,
-          `Menos R$${valorFormatado} por ser um criminoso de quinta categoria. Melhor voltar a vender bolo de pote.`
-        ]
-      }
-    };
+      safetySettings: [
+        // Configurações de segurança mais permissivas para humor negro
+        {
+          category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+        {
+          category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+          threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+        },
+      ],
+    });
+  }
+
+  /**
+   * Retorna uma resposta de fallback quando a API falha
+   * @returns {string} - Resposta de fallback genérica
+   */
+  getFallbackResponse() {
+    const respostas = [
+      "Após muito trabalho, você conseguiu um valor razoável para suas despesas.",
+      "Seu esforço foi recompensado com um montante interessante.",
+      "Nem sempre o que fazemos vale o que recebemos, mas desta vez você teve sorte.",
+      "O mundo é cruel, mas às vezes ele te dá uma pausa e te recompensa.",
+    ];
+
+    return respostas[Math.floor(Math.random() * respostas.length)];
+  }
+
+  /**
+   * Gera uma resposta para o comando estudar
+   * @param {number} pontos - Pontos de estudo ganhos
+   * @param {string} nivel - Nível educacional atual
+   * @returns {Promise<string>} - Resposta gerada
+   */
+  async gerarRespostaEstudar(pontos, nivel) {
+    const prompt = `
+  Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
+  
+  Crie uma frase curta, engraçada e motivacional para o comando /estudar de um bot de Discord.
+  O usuário acabou de ganhar ${pontos} pontos de estudo para ${nivel}.
+  A frase deve incorporar os pontos de estudo de forma natural e explícita.
+  Seja criativo e incentive o usuário a continuar estudando. Limite a resposta a 1-2 frases curtas.
+  
+  Responda apenas com a frase, sem explicações adicionais.
+  `;
+
+    return this.generateResponse(prompt);
+  }
+
+  /**
+   * Gera uma resposta para o resultado de um exame
+   * @param {boolean} passou - Se o usuário passou no exame
+   * @param {string} nivel - Nível educacional
+   * @returns {Promise<string>} - Resposta gerada
+   */
+  async gerarRespostaExame(passou, nivel) {
+    const prompt = `
+  Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
+  
+  Crie uma frase curta e criativa sobre ${
+    passou ? "passar" : "reprovar"
+  } em um exame de ${nivel}.
+  A mensagem deve ser em português brasileiro, bem-humorada e ${
+    passou ? "celebrativa" : "consoladora"
+  }.
+  Seja criativo e ${
+    passou ? "comemore a conquista" : "anime o usuário a tentar novamente"
+  }.
+  Limite a resposta a 1-2 frases curtas.
+  
+  Responda apenas com a frase, sem explicações adicionais.
+  `;
+
+    return this.generateResponse(prompt);
+  }
+
+  /**
+   * Gera uma resposta para o comando diario
+   * @param {number} valor - Valor ganho em dinheiro
+   * @param {number} streak - Streak atual
+   * @returns {Promise<string>} - Resposta gerada
+   */
+  async gerarRespostaDiario(valor, streak) {
+    const prompt = `
+    Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
     
-    // Selecionar uma resposta aleatória
-    let respostas = [];
-    if (comando === 'trabalhar') {
-      respostas = fallbackRespostas.trabalhar;
-    } else if (comando === 'seduzir') {
-      respostas = ganhou ? fallbackRespostas.seduzir.ganhou : fallbackRespostas.seduzir.perdeu;
-    } else if (comando === 'crime') {
-      respostas = ganhou ? fallbackRespostas.crime.ganhou : fallbackRespostas.crime.perdeu;
-    }
+    Crie uma mensagem engraçada e com humor negro leve para o comando /diario de um bot de Discord.
+    O usuário acabou de coletar R${valor} como recompensa diária.
+    Seu streak atual é de ${streak} ${streak === 1 ? "dia" : "dias"}.
     
-    const indiceAleatorio = Math.floor(Math.random() * respostas.length);
-    return respostas[indiceAleatorio];
+    A mensagem deve incorporar o valor de forma natural e soar motivadora para que o usuário volte no dia seguinte.
+    Seja criativo e divertido. Limite a resposta a 1-2 frases curtas.
+    
+    Responda apenas com a mensagem, sem explicações adicionais.
+    `;
+
+    return this.generateResponse(prompt);
+  }
+
+  /**
+   * Gera uma resposta para o comando semanal
+   * @param {number} valor - Valor ganho em dinheiro
+   * @param {number} streak - Streak atual
+   * @returns {Promise<string>} - Resposta gerada
+   */
+  async gerarRespostaSemanal(valor, streak) {
+    const prompt = `
+    Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
+    
+    Crie uma mensagem engraçada e com humor negro leve para o comando /semanal de um bot de Discord.
+    O usuário acabou de coletar R${valor} como recompensa semanal.
+    Seu streak atual é de ${streak} ${streak === 1 ? "semana" : "semanas"}.
+    
+    A mensagem deve incorporar o valor de forma natural e soar como uma "grande recompensa" comparada à diária.
+    Seja criativo, use um tom exagerado para destacar que é uma recompensa maior. Limite a resposta a 1-2 frases curtas.
+    
+    Responda apenas com a mensagem, sem explicações adicionais.
+    `;
+
+    return this.generateResponse(prompt);
   }
 
   /**
    * Gera uma resposta com base em um prompt
+   * Implementa retry e timeout para maior confiabilidade
    * @param {string} prompt - O prompt para enviar à API Gemini
+   * @param {number} [maxRetries=2] - Número máximo de tentativas
    * @returns {Promise<string>} - A resposta gerada
    */
-  async generateResponse(prompt) {
-    if (!this.validApiKey) {
-      return 'Não foi possível gerar uma resposta criativa. A API Gemini não está configurada corretamente.';
+  async generateResponse(prompt, maxRetries = 2) {
+    let retries = 0;
+    let lastError = null;
+
+    while (retries <= maxRetries) {
+      try {
+        // Implementar timeout para evitar esperas longas
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("Timeout na requisição para API Gemini")),
+            10000
+          )
+        );
+
+        const responsePromise = this.model.generateContent(prompt);
+        const result = await Promise.race([responsePromise, timeoutPromise]);
+        const response = await result.response;
+
+        // Validar resposta
+        const text = response.text().trim();
+        if (!text) {
+          throw new Error("Resposta vazia da API Gemini");
+        }
+
+        return text;
+      } catch (error) {
+        lastError = error;
+        console.error(
+          `Tentativa ${retries + 1}/${maxRetries + 1} falhou:`,
+          error.message
+        );
+        retries++;
+
+        // Aguardar um pouco mais a cada retry (backoff exponencial)
+        if (retries <= maxRetries) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, 1000 * Math.pow(2, retries))
+          );
+        }
+      }
     }
-    
-    try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
-    } catch (error) {
-      console.error('Erro ao gerar resposta com Gemini:', error);
-      return 'Não foi possível gerar uma resposta criativa. Tente novamente mais tarde.';
-    }
+
+    console.error("Todas as tentativas à API Gemini falharam:", lastError);
+    return this.getFallbackResponse();
+  }
+
+  /**
+   * Retorna uma resposta de fallback quando a API falha
+   * @returns {string} - Resposta de fallback genérica
+   */
+  getFallbackResponse() {
+    const respostas = [
+      "Após muito trabalho, você conseguiu um valor razoável para suas despesas.",
+      "Seu esforço foi recompensado com um montante interessante.",
+      "Nem sempre o que fazemos vale o que recebemos, mas desta vez você teve sorte.",
+      "O mundo é cruel, mas às vezes ele te dá uma pausa e te recompensa.",
+    ];
+
+    return respostas[Math.floor(Math.random() * respostas.length)];
   }
 
   /**
@@ -147,27 +232,18 @@ class GeminiClient {
    * @returns {Promise<string>} - Resposta gerada
    */
   async gerarRespostaTrabalhar(valor) {
-    if (!this.validApiKey) {
-      return this.generateFallbackResponse('trabalhar', valor);
-    }
-    
     const prompt = `
     Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
     
-    Gere uma frase humorística, sarcástica e com humor negro pesado para o comando /trabalhar de um bot de Discord. 
+    Crie uma frase humorística, sarcástica e com humor negro pesado para o comando /trabalhar de um bot de Discord. 
     A frase deve conter o valor R$${valor} de forma natural e explícita.
     O usuário ganhou esse valor "trabalhando". 
     Seja criativo, cínico e use ironia. Limite a resposta a 1-2 frases curtas.
     
     Responda apenas com a frase, sem explicações adicionais.
     `;
-    
-    try {
-      return await this.generateResponse(prompt);
-    } catch (error) {
-      console.error('Erro ao gerar resposta para trabalhar:', error);
-      return this.generateFallbackResponse('trabalhar', valor);
-    }
+
+    return this.generateResponse(prompt);
   }
 
   /**
@@ -177,29 +253,22 @@ class GeminiClient {
    * @returns {Promise<string>} - Resposta gerada
    */
   async gerarRespostaSeduzir(valor, ganhou) {
-    if (!this.validApiKey) {
-      return this.generateFallbackResponse('seduzir', valor, ganhou);
-    }
-    
     const valorFormatado = ganhou ? `R$${valor}` : `-R$${Math.abs(valor)}`;
-    
+
     const prompt = `
     Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
     
-    Gere uma frase humorística, provocativa e ofensiva para o comando /seduzir de um bot de Discord.
-    O usuário ${ganhou ? 'ganhou' : 'perdeu'} ${valorFormatado} tentando seduzir alguém. 
-    A frase deve conter o valor ${valorFormatado} de forma natural e explícita.
-    Seja criativo, cínico e use tom provocativo e ofensivo. Limite a resposta a 1-2 frases curtas.
+    Crie uma frase humorística, provocativa e com humor negro para o comando /seduzir de um bot de Discord.
+    O usuário ${
+      ganhou ? "ganhou" : "perdeu"
+    } ${valorFormatado} tentando seduzir alguém. 
+    A frase deve incorporar o valor ${valorFormatado} de forma natural e explícita.
+    Seja criativo, cínico e use tom provocativo. Limite a resposta a 1-2 frases curtas.
     
     Responda apenas com a frase, sem explicações adicionais.
     `;
-    
-    try {
-      return await this.generateResponse(prompt);
-    } catch (error) {
-      console.error('Erro ao gerar resposta para seduzir:', error);
-      return this.generateFallbackResponse('seduzir', valor, ganhou);
-    }
+
+    return this.generateResponse(prompt);
   }
 
   /**
@@ -209,50 +278,37 @@ class GeminiClient {
    * @returns {Promise<string>} - Resposta gerada
    */
   async gerarRespostaCrime(valor, ganhou) {
-    if (!this.validApiKey) {
-      return this.generateFallbackResponse('crime', valor, ganhou);
-    }
-    
     const valorFormatado = ganhou ? `R$${valor}` : `-R$${Math.abs(valor)}`;
-    
+
     const prompt = `
     Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
     
-    Gere uma frase sombria, ácida e sem filtros para o comando /crime de um bot de Discord.
-    O usuário ${ganhou ? 'lucrou' : 'perdeu'} ${valorFormatado} ao tentar cometer um crime.
+    Crie uma frase sombria, ácida e sem filtros para o comando /crime de um bot de Discord.
+    O usuário ${
+      ganhou ? "lucrou" : "perdeu"
+    } ${valorFormatado} ao tentar cometer um crime.
     A frase deve embutir claramente o valor em reais (${valorFormatado}) de forma natural e explícita.
-    Seja criativo, cínico e use tom sombrio. Faça referência a crimes específicos. Limite a resposta a 1-2 frases curtas.
+    Seja criativo, cínico e use tom sombrio. Faça referência a crimes específicos como assalto, fraude, tráfico, etc. Limite a resposta a 1-2 frases curtas.
     
     Responda apenas com a frase, sem explicações adicionais.
     `;
-    
-    try {
-      return await this.generateResponse(prompt);
-    } catch (error) {
-      console.error('Erro ao gerar resposta para crime:', error);
-      return this.generateFallbackResponse('crime', valor, ganhou);
-    }
+
+    return this.generateResponse(prompt);
   }
 
-   /**
+  /**
    * Gera uma resposta para o comando roubar
    * @param {number} valor - Valor roubado/multa
    * @param {boolean} sucesso - Se o roubo foi bem-sucedido
    * @param {string} nomeAlvo - Nome do alvo do roubo
    * @returns {Promise<string>} - Resposta gerada
    */
-   async gerarRespostaRoubo(valor, sucesso, nomeAlvo) {
-    if (!this.validApiKey) {
-      return sucesso 
-        ? `Você roubou R$${valor.toFixed(2)} de ${nomeAlvo}. Criminoso de sucesso, parabéns!`
-        : `Tentou roubar ${nomeAlvo}, foi pego e pagou R$${valor.toFixed(2)} de multa. Criminoso iniciante!`;
-    }
-    
-    const prompt = sucesso 
+  async gerarRespostaRoubo(valor, sucesso, nomeAlvo) {
+    const prompt = sucesso
       ? `
       Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
       
-      Gere uma frase sarcástica e com humor negro pesado para um comando de roubo bem-sucedido em um bot de Discord.
+      Crie uma frase sarcástica e com humor negro pesado para um comando de roubo bem-sucedido em um bot de Discord.
       O usuário roubou R$${valor.toFixed(2)} de ${nomeAlvo}.
       A frase deve conter o valor roubado de forma natural e explícita.
       Seja criativo e use um tom irônico ou provocativo. Limite a resposta a 1-2 frases curtas.
@@ -262,22 +318,17 @@ class GeminiClient {
       : `
       Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
       
-      Gere uma frase sarcástica e com humor negro pesado para um comando de roubo que falhou em um bot de Discord.
-      O usuário tentou roubar ${nomeAlvo}, foi pego e pagou uma multa de R$${valor.toFixed(2)}.
+      Crie uma frase sarcástica e com humor negro pesado para um comando de roubo que falhou em um bot de Discord.
+      O usuário tentou roubar ${nomeAlvo}, foi pego e pagou uma multa de R$${valor.toFixed(
+          2
+        )}.
       A frase deve conter o valor da multa de forma natural e explícita.
       Seja criativo e use um tom de zombaria com o fracasso. Limite a resposta a 1-2 frases curtas.
       
       Responda apenas com a frase, sem explicações adicionais.
       `;
-    
-    try {
-      return await this.generateResponse(prompt);
-    } catch (error) {
-      console.error('Erro ao gerar resposta para roubo:', error);
-      return sucesso 
-        ? `Você roubou R$${valor.toFixed(2)} de ${nomeAlvo}. Criminoso de sucesso, parabéns!`
-        : `Tentou roubar ${nomeAlvo}, foi pego e pagou R$${valor.toFixed(2)} de multa. Criminoso iniciante!`;
-    }
+
+    return this.generateResponse(prompt);
   }
 
   /**
@@ -288,31 +339,45 @@ class GeminiClient {
    * @returns {Promise<string>} - Motivo gerado
    */
   async gerarMotivoPix(remetente, destinatario, valor) {
-    if (!this.validApiKey) {
-      return `Transferência de R$${valor.toFixed(2)} de ${remetente} para ${destinatario}`;
-    }
-    
     const prompt = `
     Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
     
-    Gere um motivo criativo, irônico e com humor negro leve para uma transferência PIX entre usuários do Discord.
-    O usuário ${remetente} transferiu R$${valor.toFixed(2)} para ${destinatario}.
+    Crie um motivo criativo, irônico e com humor negro leve para uma transferência PIX entre usuários do Discord.
+    O usuário ${remetente} transferiu R$${valor.toFixed(
+      2
+    )} para ${destinatario}.
     O motivo deve ser breve, criativo e engraçado, podendo fazer referências a contextos absurdos, ilegais ou constrangedores de forma leve e cômica.
     Seja criativo e certifique-se de incluir o valor transferido de forma natural na explicação.
     Limite a resposta a 1-2 frases curtas.
     
     Responda apenas com o motivo, sem explicações adicionais.
     `;
+
+    return this.generateResponse(prompt);
+  }
+
+  /**
+   * Gera uma descrição de item para a loja
+   * @param {string} itemName - Nome do item
+   * @param {string} itemType - Tipo do item (consumível, boost, VIP)
+   * @param {number} price - Preço do item
+   * @returns {Promise<string>} - Descrição gerada
+   */
+  async gerarDescricaoItem(itemName, itemType, price) {
+    const prompt = `
+    Você é um assistente de bot de economia do Discord que gera respostas em português brasileiro.
     
-    try {
-      return await this.generateResponse(prompt);
-    } catch (error) {
-      console.error('Erro ao gerar motivo para PIX:', error);
-      return `Transferência de R$${valor.toFixed(2)} de ${remetente} para ${destinatario}`;
-    }
+    Crie uma descrição curta e atrativa para um item da loja virtual chamado "${itemName}" que custa R$${price.toFixed(
+      2
+    )}.
+    Este é um item do tipo "${itemType}".
+    A descrição deve ser breve (até 30 palavras), atraente e com um toque de humor.
+    
+    Responda apenas com a descrição, sem explicações adicionais.
+    `;
+
+    return this.generateResponse(prompt);
   }
 }
 
-// Criar uma instância do cliente e exportá-la
-const geminiClient = new GeminiClient();
-export default geminiClient;
+export default new GeminiClient();
