@@ -56,15 +56,15 @@ export async function execute(interaction) {
         emoji: "📅",
         customTime: 604800000, // 7 dias em ms
       },
-      {
-        name: "estudar",
-        emoji: "📚",
+      { 
+        name: "estudar", 
+        emoji: "📚", 
         customTime: 86400000, // 24h em ms
       },
-      {
-        name: "exame",
-        emoji: "📝",
-        customTime: 10 * 24 * 60 * 60 * 1000, // 10 dias em ms
+      { 
+        name: "exame", 
+        emoji: "📝", 
+        customTime: 10 * 24 * 60 * 60 * 1000 // 10 dias em ms
       },
     ];
 
@@ -105,23 +105,22 @@ export async function execute(interaction) {
       .setTimestamp();
 
     // Adicionar campo para cada comando
-    cooldownResults.forEach((cmd) => {
-      let status;
+    for (const cmd of cooldownResults) {
+      let statusText;
+      
       if (cmd.emCooldown) {
         const tempoFormatado = formatarTempoEspera(cmd.tempoRestante);
-        status = `⏳ **Em espera:** ${tempoFormatado} restantes`;
+        statusText = `⏳ **Disponível em:** ${tempoFormatado}`;
       } else {
-        status = "✅ **Disponível agora!**";
+        statusText = "✅ **Disponível agora!**";
       }
-
-      // Formatar o tempo total de cooldown
-      const cooldownFormatado = formatarTempoEspera(cmd.cooldownTotal);
 
       embed.addFields({
         name: `${cmd.emoji} /${cmd.name}`,
+        value: statusText,
         inline: true,
       });
-    });
+    }
 
     // Enviar o embed
     return interaction.editReply({ embeds: [embed] });
