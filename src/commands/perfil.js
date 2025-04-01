@@ -14,6 +14,8 @@ import moralityService from "../services/morality.js";
 import educationService from "../services/education.js";
 import embedUtils from "../utils/embed.js";
 import { formatarDinheiro } from "../utils/format.js";
+// Importando as funções do Firebase no início do arquivo
+import { getDatabase, ref, get } from "firebase/database";
 
 export const data = new SlashCommandBuilder()
   .setName("perfil")
@@ -301,7 +303,7 @@ function createGeneralEmbed(
     .addFields(
       {
         name: "💰 Patrimônio",
-        value: formatarDinheiro(userData.saldo),
+        value: formatarDinheiro(userData.saldo || 0),
         inline: true,
       },
       {
@@ -326,7 +328,7 @@ function createGeneralEmbed(
     .setTimestamp();
 
   // Adicionar informação educacional se disponível
-  if (educationInfo.current) {
+  if (educationInfo && educationInfo.current) {
     embed.addFields({
       name: "🎓 Educação Atual",
       value: `${educationInfo.current.icon} ${educationInfo.current.name}${
@@ -336,7 +338,11 @@ function createGeneralEmbed(
       } (${educationInfo.current.progress}%)`,
       inline: true,
     });
-  } else if (educationInfo.completed.length > 0) {
+  } else if (
+    educationInfo &&
+    educationInfo.completed &&
+    educationInfo.completed.length > 0
+  ) {
     const lastCompleted =
       educationInfo.completed[educationInfo.completed.length - 1];
     embed.addFields({
@@ -355,7 +361,11 @@ function createGeneralEmbed(
   }
 
   // Número de diplomas
-  if (educationInfo.completed.length > 0) {
+  if (
+    educationInfo &&
+    educationInfo.completed &&
+    educationInfo.completed.length > 0
+  ) {
     embed.addFields({
       name: "🏫 Diplomas",
       value: `${educationInfo.completed.length} formação(ões) concluída(s)`,
@@ -374,6 +384,14 @@ async function createEducationEmbed(targetUser, educationInfo) {
     .setColor(0x3498db) // Azul para educação
     .setTitle(`🎓 Perfil Educacional de ${targetUser.username}`)
     .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }));
+
+  // Verificar se educationInfo existe e possui estrutura válida
+  if (!educationInfo) {
+    embed.setDescription(
+      "Não foi possível obter dados educacionais. Tente novamente mais tarde."
+    );
+    return embed;
+  }
 
   // Adicionar informação de curso atual
   if (educationInfo.current) {
@@ -431,24 +449,27 @@ async function createEducationEmbed(targetUser, educationInfo) {
   }
 
   // Adicionar formações concluídas
-  if (educationInfo.completed.length > 0) {
+  if (educationInfo.completed && educationInfo.completed.length > 0) {
     let completedText = educationInfo.completed
       .map((level) => {
+        if (!level || !level.completedAt) return null;
+
         const completionDate = new Date(level.completedAt).toLocaleDateString(
           "pt-BR"
         );
-        let text = `${level.icon} ${level.name}`;
+        let text = `${level.icon || "🎓"} ${level.name || "Formação"}`;
         if (level.areaName) {
           text += ` - ${level.areaName}`;
         }
         text += ` (${completionDate})`;
         return text;
       })
+      .filter((text) => text !== null)
       .join("\n");
 
     embed.addFields({
       name: "🏆 Formações Concluídas",
-      value: completedText,
+      value: completedText || "Nenhuma formação concluída ainda.",
       inline: false,
     });
   } else {
@@ -489,17 +510,24 @@ async function createMoralityEmbed(targetUser, morality, userData) {
   );
 
   // Obter estatísticas de ações morais
-  const database = getDatabase();
-  const statsRef = ref(database, `users/${targetUser.id}/moralStats`);
-  const snapshot = await get(statsRef);
-  const stats = snapshot.exists()
-    ? snapshot.val()
-    : {
-        goodActions: 0,
-        badActions: 0,
-        neutralActions: 0,
-        actions: {},
-      };
+  let stats = {
+    goodActions: 0,
+    badActions: 0,
+    neutralActions: 0,
+    actions: {},
+  };
+
+  try {
+    const database = getDatabase();
+    const statsRef = ref(database, `users/${targetUser.id}/moralStats`);
+    const snapshot = await get(statsRef);
+
+    if (snapshot && snapshot.exists()) {
+      stats = snapshot.val() || stats;
+    }
+  } catch (error) {
+    console.error("Erro ao acessar estatísticas de moralidade:", error);
+  }
 
   // Criar a barra de progresso de moralidade
   let progressBar = "";
@@ -525,7 +553,7 @@ async function createMoralityEmbed(targetUser, morality, userData) {
 
   // Formatar as ações mais frequentes
   let topActions = "Nenhuma ação registrada";
-  if (stats.actions) {
+  if (stats.actions && Object.keys(stats.actions).length > 0) {
     // Mapear emojis para ações
     const actionEmojis = {
       trabalhar: "💼",
@@ -541,7 +569,7 @@ async function createMoralityEmbed(targetUser, morality, userData) {
       .sort((a, b) => b.count - a.count)
       .slice(0, 3);
 
-    if (actionsArray.length > 0) {
+    if (actionsArray && actionsArray.length > 0) {
       topActions = actionsArray
         .map(
           (item) =>
@@ -618,11 +646,7 @@ async function createMoralityEmbed(targetUser, morality, userData) {
  * Cria o embed de informações de cassino
  */
 async function createCasinoEmbed(targetUser, casinoChips, userId) {
-  // Obter estatísticas de cassino
-  const database = getDatabase();
-  const statsRef = ref(database, `users/${userId}/stats/casino`);
-  const snapshot = await get(statsRef);
-
+  // Valores padrão para as estatísticas
   let stats = {
     gamesPlayed: 0,
     totalBets: 0,
@@ -630,22 +654,35 @@ async function createCasinoEmbed(targetUser, casinoChips, userId) {
     losses: 0,
   };
 
-  if (snapshot.exists()) {
-    stats = snapshot.val();
+  try {
+    const database = getDatabase();
+    const statsRef = ref(database, `users/${userId}/stats/casino`);
+    const snapshot = await get(statsRef);
+
+    if (snapshot && snapshot.exists()) {
+      stats = snapshot.val() || stats;
+    }
+  } catch (error) {
+    console.error("Erro ao acessar estatísticas de cassino:", error);
   }
 
-  // Calcular estatísticas derivadas
+  // Calcular estatísticas derivadas com segurança
   const totalGamesPlayed = stats.gamesPlayed || 0;
   const totalBets = stats.totalBets || 0;
   const totalWinnings = stats.winnings || 0;
   const totalLosses = stats.losses || 0;
   const netProfit = totalWinnings - totalLosses;
-  const roi =
-    totalBets > 0 ? ((netProfit / totalBets) * 100).toFixed(1) : "0.0";
-  const winRate =
-    totalGamesPlayed > 0
-      ? ((totalWinnings / totalBets) * 100).toFixed(1)
-      : "0.0";
+
+  // Calcular ROI e winRate com proteção contra divisão por zero
+  let roi = "0.0";
+  if (totalBets > 0) {
+    roi = ((netProfit / totalBets) * 100).toFixed(1);
+  }
+
+  let winRate = "0.0";
+  if (totalBets > 0) {
+    winRate = ((totalWinnings / totalBets) * 100).toFixed(1);
+  }
 
   // Criar embed
   const embed = new EmbedBuilder()
@@ -709,6 +746,3 @@ async function createCasinoEmbed(targetUser, casinoChips, userId) {
 
   return embed;
 }
-
-// Importar funções do Firebase (necessário para algumas operações)
-import { getDatabase, ref, get } from "firebase/database";
