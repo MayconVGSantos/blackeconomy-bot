@@ -46,7 +46,7 @@ class StoreItemsService {
         {
           id: "amuleto_sorte",
           name: "Amuleto da Sorte",
-          description:
+          description: 
             "Aumenta suas chances de ganhos no cassino por 24 horas!",
           price: 5000,
           category: "casino",
@@ -65,7 +65,7 @@ class StoreItemsService {
         {
           id: "redutor_cooldown",
           name: "Energético",
-          description:
+          description: 
             "Reduz os tempos de espera de todos os comandos em 50% uma vez.",
           price: 2500,
           category: "consumiveis",
@@ -79,7 +79,7 @@ class StoreItemsService {
         {
           id: "contrato_temporario",
           name: "Contrato Temporário",
-          description:
+          description: 
             "Aumenta os ganhos do comando trabalhar em 30% por 12 horas.",
           price: 3000,
           category: "consumiveis",
@@ -94,7 +94,7 @@ class StoreItemsService {
         {
           id: "mascara_anonima",
           name: "Máscara Anônima",
-          description:
+          description: 
             "Aumenta os ganhos e chances de sucesso do crime em 25% por 6 horas.",
           price: 4000,
           category: "consumiveis",
@@ -112,7 +112,7 @@ class StoreItemsService {
         {
           id: "vip_basico",
           name: "Status VIP Básico",
-          description:
+          description: 
             "Reduz cooldowns em 10% e aumenta ganhos em 10% por 7 dias.",
           price: 15000,
           category: "vip",
@@ -129,7 +129,7 @@ class StoreItemsService {
         {
           id: "vip_premium",
           name: "Status VIP Premium",
-          description:
+          description: 
             "Reduz cooldowns em 20% e aumenta ganhos em 20% por 15 dias.",
           price: 35000,
           category: "vip",
@@ -146,7 +146,7 @@ class StoreItemsService {
         {
           id: "vip_deluxe",
           name: "Status VIP Deluxe",
-          description:
+          description: 
             "Reduz cooldowns em 30% e aumenta ganhos em 30% por 30 dias.",
           price: 75000,
           category: "vip",
@@ -236,9 +236,9 @@ class StoreItemsService {
    */
   getCategoryIcon(category) {
     const icons = {
-      casino: "",
-      consumiveis: "",
-      vip: "",
+      casino: "🎰",
+      consumiveis: "🧪",
+      vip: "✨",
     };
 
     return icons[category] || "📦";
