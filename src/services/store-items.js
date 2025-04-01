@@ -236,9 +236,9 @@ class StoreItemsService {
    */
   getCategoryIcon(category) {
     const icons = {
-      casino: "🎰",
-      consumiveis: "🧪",
-      vip: "✨",
+      casino: "",
+      consumiveis: "",
+      vip: "",
     };
 
     return icons[category] || "📦";
