@@ -1,4 +1,5 @@
 // format.js - Utilitários para formatação de valores
+
 /**
  * Formata um valor numérico para o formato de moeda brasileira (R$)
  * @param {number} valor - Valor a ser formatado
@@ -29,4 +30,43 @@ function formatarNumero(valor, casasDecimais = 0) {
   }).format(valor);
 }
 
-export { formatarDinheiro, formatarNumero };
+/**
+ * Formata o tempo de espera em uma string legível com dias, horas, minutos e segundos
+ * @param {number} tempoRestanteMs - Tempo restante em milissegundos
+ * @returns {string} - Tempo formatado (ex: "2d 5h 30m 15s")
+ */
+function formatarTempoEspera(tempoRestanteMs) {
+  // Converter para segundos
+  let tempoTotal = Math.ceil(tempoRestanteMs / 1000);
+
+  // Calcular dias, horas, minutos e segundos
+  const dias = Math.floor(tempoTotal / (24 * 60 * 60));
+  tempoTotal %= 24 * 60 * 60;
+
+  const horas = Math.floor(tempoTotal / (60 * 60));
+  tempoTotal %= 60 * 60;
+
+  const minutos = Math.floor(tempoTotal / 60);
+  const segundos = tempoTotal % 60;
+
+  // Construir a string de tempo
+  let resultado = "";
+
+  if (dias > 0) {
+    resultado += `${dias}d `;
+  }
+
+  if (horas > 0 || dias > 0) {
+    resultado += `${horas}h `;
+  }
+
+  if (minutos > 0 || horas > 0 || dias > 0) {
+    resultado += `${minutos}m `;
+  }
+
+  resultado += `${segundos}s`;
+
+  return resultado;
+}
+
+export { formatarDinheiro, formatarNumero, formatarTempoEspera };

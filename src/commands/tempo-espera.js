@@ -1,7 +1,8 @@
-// tempo-espera.js - Comando para verificar todos os cooldowns
+// tempo-espera.js - Comando corrigido para verificar todos os cooldowns
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import firebaseService from "../services/firebase.js";
 import config from "../../config/config.js";
+import { formatarTempoEspera } from "../utils/format.js";
 
 export const data = new SlashCommandBuilder()
   .setName("tempo-espera")
@@ -48,24 +49,36 @@ export async function execute(interaction) {
       {
         name: "diario",
         emoji: "🎁",
-        configKey: "diario",
-        customTime: 86400000,
-      }, // 24h em ms
+        customTime: 86400000, // 24h em ms
+      },
       {
         name: "semanal",
         emoji: "📅",
-        configKey: "semanal",
-        customTime: 604800000,
-      }, // 7 dias em ms
-      { name: "estudar", emoji: "📚", configKey: "estudar" },
-      { name: "exame", emoji: "📝", customTime: 10 * 24 * 60 * 60 * 1000 }, // 10 dias em ms
+        customTime: 604800000, // 7 dias em ms
+      },
+      {
+        name: "estudar",
+        emoji: "📚",
+        customTime: 86400000, // 24h em ms
+      },
+      {
+        name: "exame",
+        emoji: "📝",
+        customTime: 10 * 24 * 60 * 60 * 1000, // 10 dias em ms
+      },
     ];
 
     // Verificar cooldown para cada comando
     const cooldownResults = await Promise.all(
       commandsWithCooldown.map(async (cmd) => {
-        const cooldownTimeMinutes = config.cooldown[cmd.configKey] || 0;
-        const cooldownTimeMs = cooldownTimeMinutes * 60000;
+        // Determinar o tempo de cooldown
+        let cooldownTimeMs;
+        if (cmd.customTime) {
+          cooldownTimeMs = cmd.customTime;
+        } else {
+          const cooldownTimeMinutes = config.cooldown[cmd.configKey] || 0;
+          cooldownTimeMs = cooldownTimeMinutes * 60000;
+        }
 
         const result = await firebaseService.checkCooldown(
           targetUser.id,
@@ -87,26 +100,26 @@ export async function execute(interaction) {
       .setColor(0x3498db) // Azul
       .setTitle(`⏱️ Tempos de Espera de ${targetUser.username}`)
       .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
+      .setDescription("Aqui estão os tempos restantes para usar cada comando:")
       .setFooter({ text: `Solicitado por ${interaction.user.username}` })
       .setTimestamp();
 
     // Adicionar campo para cada comando
     cooldownResults.forEach((cmd) => {
-      const minutes = Math.floor(cmd.tempoRestante / 60000);
-      const seconds = Math.floor((cmd.tempoRestante % 60000) / 1000);
-
       let status;
       if (cmd.emCooldown) {
-        status = `⏳ Em espera: **${minutes}m ${seconds}s** restantes`;
+        const tempoFormatado = formatarTempoEspera(cmd.tempoRestante);
+        status = `⏳ **Em espera:** ${tempoFormatado} restantes`;
       } else {
-        status = "✅ Disponível agora!";
+        status = "✅ **Disponível agora!**";
       }
 
-      const cooldownMinutes = Math.floor(cmd.cooldownTotal / 60000);
+      // Formatar o tempo total de cooldown
+      const cooldownFormatado = formatarTempoEspera(cmd.cooldownTotal);
 
       embed.addFields({
         name: `${cmd.emoji} /${cmd.name}`,
-        value: `${status}\nTempo total: ${cooldownMinutes} minutos`,
+        value: `${status}\nTempo total: ${cooldownFormatado}`,
         inline: true,
       });
     });
