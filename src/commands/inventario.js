@@ -36,7 +36,6 @@ export const data = new SlashCommandBuilder()
       )
   );
 
-  
 export async function execute(interaction) {
   try {
     await interaction.deferReply();
@@ -105,124 +104,127 @@ export async function execute(interaction) {
     }
 
     // Processar itens do inventário
-let hasItems = false;
-console.log(`Processando inventário. Categoria selecionada: ${selectedCategory}`);
-console.log('Itens no inventário:', inventory.items);
+    let hasItems = false;
+    console.log(
+      `Processando inventário. Categoria selecionada: ${selectedCategory}`
+    );
+    console.log("Itens no inventário:", inventory.items);
 
-if (inventory.items && Object.keys(inventory.items).length > 0) {
-  // Agrupar itens por categoria
-  const itemsByCategory = {};
+    let itemsByCategory = {};
+    if (inventory.items && Object.keys(inventory.items).length > 0) {
+      // Agrupar itens por categoria
+      // Processar cada item no inventário
+      for (const itemId in inventory.items) {
+        console.log(
+          `Verificando item: ${itemId}, Quantidade: ${inventory.items[itemId].quantity}`
+        );
 
-  // Processar cada item no inventário
-  for (const itemId in inventory.items) {
-    console.log(`Verificando item: ${itemId}, Quantidade: ${inventory.items[itemId].quantity}`);
+        // Verificar se o item existe e tem quantidade maior que 0
+        if (inventory.items[itemId].quantity <= 0) {
+          console.log(`Item ${itemId} tem quantidade 0, pulando`);
+          continue;
+        }
 
-    // Verificar se o item existe e tem quantidade maior que 0
-    if (inventory.items[itemId].quantity <= 0) {
-      console.log(`Item ${itemId} tem quantidade 0, pulando`);
-      continue;
+        // Obter detalhes do item da loja
+        const itemDetails = storeItemsService.getItemById(itemId);
+        console.log("Detalhes do item:", itemDetails);
+
+        if (!itemDetails) {
+          console.log(`Item ${itemId} não encontrado na loja, pulando`);
+          continue;
+        }
+
+        // Filtrar por categoria selecionada
+        if (
+          selectedCategory !== "all" &&
+          itemDetails.category !== selectedCategory
+        ) {
+          console.log(
+            `Item ${itemId} não pertence à categoria ${selectedCategory}, pulando`
+          );
+          continue;
+        }
+
+        // Inicializar categoria se necessário
+        if (!itemsByCategory[itemDetails.category]) {
+          itemsByCategory[itemDetails.category] = [];
+        }
+
+        // Adicionar item à categoria
+        itemsByCategory[itemDetails.category].push({
+          id: itemId,
+          name: itemDetails.name,
+          icon: itemDetails.icon,
+          quantity: inventory.items[itemId].quantity,
+          description: itemDetails.description,
+          usavel: itemDetails.usavel,
+          lastUsed: inventory.items[itemId].lastUsed,
+        });
+
+        hasItems = true;
+      }
+      console.log("Itens agrupados por categoria:", itemsByCategory);
     }
 
-    // Obter detalhes do item da loja
-    const itemDetails = storeItemsService.getItemById(itemId);
-    console.log(`Detalhes do item: `, itemDetails);
+    // Adicionar campos ao embed para cada categoria de item
+    for (const category in itemsByCategory) {
+      // Obter nome de exibição e ícone da categoria
+      const categoryDisplayName =
+        storeItemsService.getCategoryDisplayName(category);
 
-    if (!itemDetails) {
-      console.log(`Item ${itemId} não encontrado na loja, pulando`);
-      continue;
-    }
+      // Formatar itens desta categoria
+      const itemsText = itemsByCategory[category]
+        .map((item) => {
+          // Verificar se está em cooldown
+          let cooldownText = "";
+          let statusIcon = "";
 
-    // Filtrar por categoria selecionada
-    if (
-      selectedCategory !== "all" &&
-      itemDetails.category !== selectedCategory
-    ) {
-      console.log(`Item ${itemId} não pertence à categoria ${selectedCategory}, pulando`);
-      continue;
-    }
+          if (item.lastUsed && item.usavel) {
+            const now = Date.now();
+            const timeElapsed = now - item.lastUsed;
 
-    // Inicializar categoria se necessário
-    if (!itemsByCategory[itemDetails.category]) {
-      itemsByCategory[itemDetails.category] = [];
-    }
-
-    // Adicionar item à categoria
-    itemsByCategory[itemDetails.category].push({
-      id: itemId,
-      name: itemDetails.name,
-      icon: itemDetails.icon,
-      quantity: inventory.items[itemId].quantity,
-      description: itemDetails.description,
-      usavel: itemDetails.usavel,
-      lastUsed: inventory.items[itemId].lastUsed,
-    });
-
-    hasItems = true;
-  }
-
-  console.log('Itens agrupados por categoria:', itemsByCategory);
-}
-
-      // Adicionar campos ao embed para cada categoria de item
-      for (const category in itemsByCategory) {
-        // Obter nome de exibição e ícone da categoria
-        const categoryDisplayName =
-          storeItemsService.getCategoryDisplayName(category);
-
-        // Formatar itens desta categoria
-        const itemsText = itemsByCategory[category]
-          .map((item) => {
-            // Verificar se está em cooldown
-            let cooldownText = "";
-            let statusIcon = "";
-
-            if (item.lastUsed && item.usavel) {
-              const now = Date.now();
-              const timeElapsed = now - item.lastUsed;
-
-              // Obter detalhes do item da loja para verificar cooldown
-              const storeItem = storeItemsService.getItemById(item.id);
-              if (
-                storeItem &&
-                storeItem.cooldown &&
-                timeElapsed < storeItem.cooldown
-              ) {
-                const timeRemaining = storeItem.cooldown - timeElapsed;
-                cooldownText = ` (🕒 Em espera: ${formatarTempoEspera(
-                  timeRemaining
-                )})`;
-                statusIcon = "🕒";
-              } else if (
-                storeItem &&
-                storeItem.duration &&
-                timeElapsed < storeItem.duration
-              ) {
-                // Item ainda está ativo
-                const timeRemaining = storeItem.duration - timeElapsed;
-                cooldownText = ` (✨ Ativo por mais: ${formatarTempoEspera(
-                  timeRemaining
-                )})`;
-                statusIcon = "✨";
-              } else {
-                statusIcon = item.usavel ? "✅" : "📦";
-              }
+            // Obter detalhes do item da loja para verificar cooldown
+            const storeItem = storeItemsService.getItemById(item.id);
+            if (
+              storeItem &&
+              storeItem.cooldown &&
+              timeElapsed < storeItem.cooldown
+            ) {
+              const timeRemaining = storeItem.cooldown - timeElapsed;
+              cooldownText = ` (🕒 Em espera: ${formatarTempoEspera(
+                timeRemaining
+              )})`;
+              statusIcon = "🕒";
+            } else if (
+              storeItem &&
+              storeItem.duration &&
+              timeElapsed < storeItem.duration
+            ) {
+              // Item ainda está ativo
+              const timeRemaining = storeItem.duration - timeElapsed;
+              cooldownText = ` (✨ Ativo por mais: ${formatarTempoEspera(
+                timeRemaining
+              )})`;
+              statusIcon = "✨";
             } else {
               statusIcon = item.usavel ? "✅" : "📦";
             }
+          } else {
+            statusIcon = item.usavel ? "✅" : "📦";
+          }
 
-            return `${statusIcon} **${item.icon} ${item.name}** x${item.quantity}${cooldownText}\n└ *${item.description}*`;
-          })
-          .join("\n\n");
+          return `${statusIcon} **${item.icon} ${item.name}** x${item.quantity}${cooldownText}\n└ *${item.description}*`;
+        })
+        .join("\n\n");
 
-        // Adicionar campo para esta categoria
-        embed.addFields({
-          name: `${storeItemsService.getCategoryIcon(
-            category
-          )} ${categoryDisplayName} (${itemsByCategory[category].length})`,
-          value: itemsText || "Nenhum item nesta categoria.",
-          inline: false,
-        });
-      }
+      // Adicionar campo para esta categoria
+      embed.addFields({
+        name: `${storeItemsService.getCategoryIcon(
+          category
+        )} ${categoryDisplayName} (${itemsByCategory[category].length})`,
+        value: itemsText || "Nenhum item nesta categoria.",
+        inline: false,
+      });
     }
 
     // Verificar se o usuário tem algum item (além das fichas)
@@ -230,7 +232,7 @@ if (inventory.items && Object.keys(inventory.items).length > 0) {
       const noItemsMessage = isOwnInventory
         ? "Você não possui nenhum item em seu inventário. Use o comando `/loja` para comprar itens!"
         : `${targetUser.username} não possui nenhum item em seu inventário.`;
-    
+
       embed.addFields({
         name: "📦 Inventário vazio",
         value: noItemsMessage,
@@ -273,7 +275,6 @@ if (inventory.items && Object.keys(inventory.items).length > 0) {
           .setEmoji("🔮")
       );
     }
-    
 
     // Criar menu para filtrar categorias
     const filterMenu = new ActionRowBuilder().addComponents(
@@ -392,7 +393,7 @@ if (inventory.items && Object.keys(inventory.items).length > 0) {
           // Desativar componentes quando expirar
           const disabledComponents = components.map((row) => {
             const disabledRow = new ActionRowBuilder();
-    
+
             row.components.forEach((component) => {
               if (component.type === ComponentType.Button) {
                 disabledRow.addComponents(
@@ -406,10 +407,10 @@ if (inventory.items && Object.keys(inventory.items).length > 0) {
                 );
               }
             });
-    
+
             return disabledRow;
           });
-    
+
           try {
             await interaction.editReply({ components: disabledComponents });
           } catch (editError) {
@@ -418,16 +419,27 @@ if (inventory.items && Object.keys(inventory.items).length > 0) {
         }
       });
     } catch (error) {
-      console.error("Erro ao executar comando inventario:", error);
-    
-      // Criar embed de erro
+      console.error("Erro ao executar coletor do comando inventario:", error);
+
       const embedErro = embedUtils.criarEmbedErro({
         usuario: interaction.user.username,
         titulo: "Erro no Comando",
         mensagem:
           "Ocorreu um erro ao processar o comando. Tente novamente mais tarde.",
       });
-    
+
       return interaction.editReply({ embeds: [embedErro] });
     }
+  } catch (error) {
+    console.error("Erro ao executar comando inventario:", error);
+
+    const embedErro = embedUtils.criarEmbedErro({
+      usuario: interaction.user.username,
+      titulo: "Erro no Comando",
+      mensagem:
+        "Ocorreu um erro ao processar o comando. Tente novamente mais tarde.",
+    });
+
+    return interaction.editReply({ embeds: [embedErro] });
   }
+}
