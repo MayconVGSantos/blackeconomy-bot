@@ -1,8 +1,9 @@
-// tempo-espera.js - Corrigido para resolver o problema com o cooldown do comando estudar e exame
+// tempo-espera.js - Adaptado à estrutura real do Firebase
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import firebaseService from "../services/firebase.js";
 import config from "../../config/config.js";
 import { formatarTempoEspera } from "../utils/format.js";
+import { getDatabase, ref, get } from "firebase/database";
 
 export const data = new SlashCommandBuilder()
   .setName("tempo-espera")
@@ -61,15 +62,31 @@ export async function execute(interaction) {
         name: "estudar",
         emoji: "📚",
         customTime: 86400000, // 24h em ms
+        specialCheck: true, // Marcar para verificação especial
       },
       {
         name: "exame",
         emoji: "📝",
         customTime: 10 * 24 * 60 * 60 * 1000, // 10 dias em ms
+        specialCheck: true, // Marcar para verificação especial
       },
     ];
 
-    // Verificar cooldown para cada comando usando o serviço Firebase diretamente
+    // Obter dados do usuário para verificações especiais
+    const database = getDatabase();
+    let userData = null;
+
+    try {
+      const userRef = ref(database, `users/${userId}`);
+      const userSnapshot = await get(userRef);
+      if (userSnapshot.exists()) {
+        userData = userSnapshot.val();
+      }
+    } catch (error) {
+      console.error("Erro ao obter dados do usuário:", error);
+    }
+
+    // Verificar cooldown para cada comando
     const cooldownResults = await Promise.all(
       commandsWithCooldown.map(async (cmd) => {
         // Determinar o tempo de cooldown
@@ -81,19 +98,29 @@ export async function execute(interaction) {
           cooldownTimeMs = cooldownTimeMinutes * 60000;
         }
 
-        // Usar o serviço Firebase para verificar o cooldown
-        const result = await firebaseService.checkCooldown(
-          userId,
-          cmd.name,
-          cooldownTimeMs
-        );
+        // Verificação especial para comandos como estudar e exame
+        if (cmd.specialCheck) {
+          return await checkSpecialCooldown(
+            cmd,
+            userId,
+            userData,
+            cooldownTimeMs
+          );
+        } else {
+          // Para comandos regulares, usar verificação normal de cooldown
+          const result = await firebaseService.checkCooldown(
+            userId,
+            cmd.name,
+            cooldownTimeMs
+          );
 
-        return {
-          ...cmd,
-          emCooldown: result.emCooldown,
-          tempoRestante: result.tempoRestante,
-          cooldownTotal: cooldownTimeMs,
-        };
+          return {
+            ...cmd,
+            emCooldown: result.emCooldown,
+            tempoRestante: result.tempoRestante,
+            cooldownTotal: cooldownTimeMs,
+          };
+        }
       })
     );
 
@@ -134,5 +161,95 @@ export async function execute(interaction) {
   }
 }
 
-// Remoção das importações duplicadas e desnecessárias
-// O código agora usa o serviço firebaseService.checkCooldown para todos os comandos
+/**
+ * Função para verificar cooldowns especiais (estudar, exame)
+ * @param {Object} cmd - Comando a ser verificado
+ * @param {string} userId - ID do usuário
+ * @param {Object} userData - Dados do usuário do Firebase
+ * @param {number} cooldownTimeMs - Tempo de cooldown em ms
+ * @returns {Promise<Object>} - Resultado da verificação
+ */
+async function checkSpecialCooldown(cmd, userId, userData, cooldownTimeMs) {
+  try {
+    if (!userData) {
+      return {
+        ...cmd,
+        emCooldown: false,
+        tempoRestante: 0,
+        cooldownTotal: cooldownTimeMs,
+      };
+    }
+
+    // Para o comando 'estudar', verificar lastStudyDate
+    if (
+      cmd.name === "estudar" &&
+      userData.education &&
+      userData.education.lastStudyDate
+    ) {
+      const lastUsed = userData.education.lastStudyDate;
+      const now = Date.now();
+      const timeElapsed = now - lastUsed;
+
+      if (timeElapsed < cooldownTimeMs) {
+        return {
+          ...cmd,
+          emCooldown: true,
+          tempoRestante: cooldownTimeMs - timeElapsed,
+          cooldownTotal: cooldownTimeMs,
+        };
+      }
+    }
+
+    // Para o comando 'exame', verificar baseado em examsTaken e examsPassed
+    if (cmd.name === "exame" && userData.education) {
+      // Verificar se já fez algum exame
+      const examsTaken = userData.education.examsTaken || 0;
+      const examsPassed = userData.education.examsPassed || 0;
+
+      // Se não fez nenhum exame, está disponível
+      if (examsTaken === 0) {
+        return {
+          ...cmd,
+          emCooldown: false,
+          tempoRestante: 0,
+          cooldownTotal: cooldownTimeMs,
+        };
+      }
+
+      // Se já fez exame, verificar o último através de lastExamDate, se existir
+      if (userData.education.lastExamDate) {
+        const lastUsed = userData.education.lastExamDate;
+        const now = Date.now();
+        const timeElapsed = now - lastUsed;
+
+        if (timeElapsed < cooldownTimeMs) {
+          return {
+            ...cmd,
+            emCooldown: true,
+            tempoRestante: cooldownTimeMs - timeElapsed,
+            cooldownTotal: cooldownTimeMs,
+          };
+        }
+      }
+    }
+
+    // Se não encontrou condições de cooldown, está disponível
+    return {
+      ...cmd,
+      emCooldown: false,
+      tempoRestante: 0,
+      cooldownTotal: cooldownTimeMs,
+    };
+  } catch (error) {
+    console.error(
+      `Erro ao verificar cooldown especial para ${cmd.name}:`,
+      error
+    );
+    return {
+      ...cmd,
+      emCooldown: false,
+      tempoRestante: 0,
+      cooldownTotal: cooldownTimeMs,
+    };
+  }
+}
