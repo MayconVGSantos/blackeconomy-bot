@@ -1,14 +1,12 @@
-// inventory.js
+// inventory.js - Versão simplificada para apenas fichas de cassino
 import {
   getDatabase,
   ref,
   set,
   get,
   update,
-  increment,
 } from "firebase/database";
 import { initializeApp } from "firebase/app";
-import storeItemsService from "./store-items.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -44,8 +42,7 @@ try {
 const database = getDatabase(app);
 
 /**
- * Serviço para gerenciar o inventário dos usuários
- * Responsável por adicionar, remover e verificar itens
+ * Serviço para gerenciar as fichas de cassino dos usuários
  */
 class InventoryService {
   /**
@@ -64,8 +61,7 @@ class InventoryService {
         // Se o usuário existe mas não tem inventário, inicializa
         if (!userData.inventory) {
           const initialInventory = {
-            fichas_cassino: 0,
-            items: {},
+            fichas_cassino: 0
           };
 
           await update(userRef, { inventory: initialInventory });
@@ -102,122 +98,6 @@ class InventoryService {
     } catch (error) {
       console.error("Erro ao obter inventário:", error);
       throw error;
-    }
-  }
-
-  /**
-   * Adiciona um item ao inventário do usuário
-   * @param {string} userId - ID do usuário
-   * @param {string} itemId - ID do item
-   * @param {number} quantity - Quantidade a adicionar
-   * @returns {Promise<Object>} - Inventário atualizado
-   */
-  async addItem(userId, itemId, quantity = 1) {
-    try {
-      // Verificar se o item existe
-      const item = storeItemsService.getItemById(itemId);
-      if (!item) {
-        throw new Error(`Item ${itemId} não existe`);
-      }
-
-      // Obter inventário atual
-      await this.initUserInventory(userId);
-
-      // Casos especiais como fichas de cassino
-      if (itemId.startsWith("fichas_cassino_")) {
-        const fichas = item.quantidade;
-        await this.addCasinoChips(userId, fichas);
-        return this.getUserInventory(userId);
-      }
-
-      // Para outros itens normais
-      const itemRef = ref(
-        database,
-        `users/${userId}/inventory/items/${itemId}`
-      );
-      const snapshot = await get(itemRef);
-
-      if (snapshot.exists()) {
-        // Se o item já existe, incrementa a quantidade
-        await update(itemRef, {
-          quantity: increment(quantity),
-        });
-      } else {
-        // Se o item não existe, adiciona
-        await set(itemRef, {
-          quantity: quantity,
-          lastUsed: null,
-        });
-      }
-
-      return this.getUserInventory(userId);
-    } catch (error) {
-      console.error("Erro ao adicionar item:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Remove um item do inventário do usuário
-   * @param {string} userId - ID do usuário
-   * @param {string} itemId - ID do item
-   * @param {number} quantity - Quantidade a remover
-   * @returns {Promise<boolean>} - Verdadeiro se removido com sucesso
-   */
-  async removeItem(userId, itemId, quantity = 1) {
-    try {
-      const itemRef = ref(
-        database,
-        `users/${userId}/inventory/items/${itemId}`
-      );
-      const snapshot = await get(itemRef);
-
-      if (!snapshot.exists()) {
-        return false;
-      }
-
-      const currentQuantity = snapshot.val().quantity;
-
-      if (currentQuantity <= quantity) {
-        // Remove completamente o item
-        await set(itemRef, null);
-      } else {
-        // Decrementa a quantidade
-        await update(itemRef, {
-          quantity: currentQuantity - quantity,
-        });
-      }
-
-      return true;
-    } catch (error) {
-      console.error("Erro ao remover item:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Verifica se o usuário tem um item e a quantidade especificada
-   * @param {string} userId - ID do usuário
-   * @param {string} itemId - ID do item
-   * @param {number} quantity - Quantidade mínima necessária
-   * @returns {Promise<boolean>} - Verdadeiro se o usuário tem o item
-   */
-  async hasItem(userId, itemId, quantity = 1) {
-    try {
-      const itemRef = ref(
-        database,
-        `users/${userId}/inventory/items/${itemId}`
-      );
-      const snapshot = await get(itemRef);
-
-      if (!snapshot.exists()) {
-        return false;
-      }
-
-      return snapshot.val().quantity >= quantity;
-    } catch (error) {
-      console.error("Erro ao verificar item:", error);
-      return false;
     }
   }
 
@@ -298,127 +178,6 @@ class InventoryService {
     } catch (error) {
       console.error("Erro ao obter fichas de cassino:", error);
       return 0;
-    }
-  }
-
-  /**
-   * Marca um item como usado e registra o timestamp
-   * @param {string} userId - ID do usuário
-   * @param {string} itemId - ID do item
-   * @returns {Promise<boolean>} - Verdadeiro se atualizado com sucesso
-   */
-  async useItem(userId, itemId) {
-    try {
-      const itemRef = ref(
-        database,
-        `users/${userId}/inventory/items/${itemId}`
-      );
-      const snapshot = await get(itemRef);
-
-      if (!snapshot.exists() || snapshot.val().quantity < 1) {
-        return false;
-      }
-
-      // Atualiza lastUsed e decrementa a quantidade
-      await update(itemRef, {
-        lastUsed: Date.now(),
-        quantity: snapshot.val().quantity - 1,
-      });
-
-      return true;
-    } catch (error) {
-      console.error("Erro ao usar item:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * Verifica se um item está em cooldown
-   * @param {string} userId - ID do usuário
-   * @param {string} itemId - ID do item
-   * @returns {Promise<{emCooldown: boolean, tempoRestante: number}>}
-   */
-  async checkItemCooldown(userId, itemId) {
-    try {
-      const item = storeItemsService.getItemById(itemId);
-
-      if (!item || !item.cooldown) {
-        return { emCooldown: false, tempoRestante: 0 };
-      }
-
-      const itemRef = ref(
-        database,
-        `users/${userId}/inventory/items/${itemId}`
-      );
-      const snapshot = await get(itemRef);
-
-      if (!snapshot.exists() || !snapshot.val().lastUsed) {
-        return { emCooldown: false, tempoRestante: 0 };
-      }
-
-      const lastUsed = snapshot.val().lastUsed;
-      const agora = Date.now();
-      const tempoPassado = agora - lastUsed;
-
-      if (tempoPassado < item.cooldown) {
-        return {
-          emCooldown: true,
-          tempoRestante: item.cooldown - tempoPassado,
-        };
-      }
-
-      return { emCooldown: false, tempoRestante: 0 };
-    } catch (error) {
-      console.error("Erro ao verificar cooldown do item:", error);
-      return { emCooldown: false, tempoRestante: 0 };
-    }
-  }
-
-  /**
-   * Verifica se um usuário tem um efeito ativo
-   * @param {string} userId - ID do usuário
-   * @param {string} effectType - Tipo de efeito
-   * @returns {Promise<{active: boolean, multiplier: number}>}
-   */
-  async checkActiveEffect(userId, effectType) {
-    try {
-      const inventory = await this.getUserInventory(userId);
-
-      if (!inventory || !inventory.items) {
-        return { active: false, multiplier: 1 };
-      }
-
-      const agora = Date.now();
-
-      // Procura por itens com o efeito ativo
-      for (const itemId in inventory.items) {
-        const itemData = inventory.items[itemId];
-
-        if (!itemData.lastUsed) continue;
-
-        const item = storeItemsService.getItemById(itemId);
-
-        if (!item || item.effect !== effectType || !item.duration) continue;
-
-        const timeElapsed = agora - itemData.lastUsed;
-
-        if (timeElapsed < item.duration) {
-          // O efeito ainda está ativo
-          return {
-            active: true,
-            multiplier:
-              typeof item.effectValue === "object"
-                ? item.effectValue.incomeBoost || 1
-                : item.effectValue || 1,
-            timeRemaining: item.duration - timeElapsed,
-          };
-        }
-      }
-
-      return { active: false, multiplier: 1 };
-    } catch (error) {
-      console.error("Erro ao verificar efeito ativo:", error);
-      return { active: false, multiplier: 1 };
     }
   }
 }

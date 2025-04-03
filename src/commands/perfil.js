@@ -1,4 +1,4 @@
-// perfil.js - Com formatação brasileira de moeda e informações aprimoradas
+// perfil.js - Modificado para remover referências a loja, marketplace e usar
 import {
   SlashCommandBuilder,
   EmbedBuilder,
@@ -145,18 +145,8 @@ export async function execute(interaction) {
         ])
     );
 
-    // Adicionar botões para comandos relacionados
+    // Adicionar botão apenas para cooldowns
     const actionRow = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("show_inventario")
-        .setLabel("Ver Inventário")
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji("🎒"),
-      new ButtonBuilder()
-        .setCustomId("show_loja")
-        .setLabel("Ir para Loja")
-        .setStyle(ButtonStyle.Success)
-        .setEmoji("🛒"),
       new ButtonBuilder()
         .setCustomId("show_tempo")
         .setLabel("Ver Cooldowns")
@@ -186,17 +176,7 @@ export async function execute(interaction) {
 
       // Componentes de botão
       if (i.isButton()) {
-        if (i.customId === "show_inventario") {
-          await i.reply({
-            content: "Use o comando `/inventario` para ver seu inventário!",
-            ephemeral: true,
-          });
-        } else if (i.customId === "show_loja") {
-          await i.reply({
-            content: "Use o comando `/loja` para visitar a loja!",
-            ephemeral: true,
-          });
-        } else if (i.customId === "show_tempo") {
+        if (i.customId === "show_tempo") {
           await i.reply({
             content: "Use o comando `/tempo-espera` para ver seus cooldowns!",
             ephemeral: true,
@@ -254,9 +234,7 @@ export async function execute(interaction) {
       );
 
       const disabledActionRow = new ActionRowBuilder().addComponents(
-        ButtonBuilder.from(actionRow.components[0]).setDisabled(true),
-        ButtonBuilder.from(actionRow.components[1]).setDisabled(true),
-        ButtonBuilder.from(actionRow.components[2]).setDisabled(true)
+        ButtonBuilder.from(actionRow.components[0]).setDisabled(true)
       );
 
       await interaction

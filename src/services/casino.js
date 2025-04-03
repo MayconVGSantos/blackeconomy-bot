@@ -1,4 +1,4 @@
-// services/casino.js - Trecho com ajustes na economia dos jogos
+// services/casino.js - Versão atualizada sem dependências da loja
 /**
  * Serviço para gerenciar as funcionalidades do cassino
  * Gerencia as fichas, apostas e jogos de cassino
@@ -42,7 +42,8 @@ class CasinoService {
   async exchangeChipsForMoney(userId, chips) {
     try {
       // Verificar se o usuário tem fichas suficientes
-      if (!(await this.hasEnoughChips(userId, chips))) {
+      const currentChips = await inventoryService.getCasinoChips(userId);
+      if (currentChips < chips) {
         return { success: false, error: "Fichas insuficientes" };
       }
 
