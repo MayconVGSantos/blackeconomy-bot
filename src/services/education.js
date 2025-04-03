@@ -547,7 +547,8 @@ class EducationService {
       const completedLevels = educationData.completedLevels || {};
       completedLevels[currentLevel] = {
         completedAt: Date.now(),
-        area: selectedArea,
+        // Só definir a área se ela existir, para evitar undefined
+        ...(selectedArea ? { area: selectedArea } : {}),
       };
 
       // Resetar o nível atual (o usuário precisará escolher o próximo nível)
@@ -575,7 +576,6 @@ class EducationService {
       throw error;
     }
   }
-
   /**
    * Obtém o próximo nível educacional disponível para o usuário
    * @param {string} userId - ID do usuário
