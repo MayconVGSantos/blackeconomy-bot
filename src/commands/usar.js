@@ -1,4 +1,4 @@
-// usar.js - Corrigido para mostrar corretamente os itens no autocomplete
+// usar.js - Versão completamente corrigida
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import inventoryService from "../services/inventory.js";
 import storeItemsService from "../services/store-items.js";
@@ -21,74 +21,85 @@ export async function execute(interaction) {
   await interactionHandler(interaction);
 }
 
-// Função para autocompletar os itens - corrigida
+// Função para autocompletar os itens - completamente revisada
 export async function autocomplete(interaction) {
   const userId = interaction.user.id;
   const focusedValue = interaction.options.getFocused().toLowerCase();
 
   try {
-    // Obter inventário do usuário
-    const inventory = await inventoryService.getUserInventory(userId);
-    if (!inventory || !inventory.items) {
+    // Obter inventário diretamente do Firebase para garantir dados atualizados
+    const database = getDatabase();
+    const inventoryRef = ref(database, `users/${userId}/inventory/items`);
+    const snapshot = await get(inventoryRef);
+
+    if (!snapshot.exists()) {
       console.log("Sem itens no inventário");
-      return interaction.respond([]);
-    }
-
-    console.log("Itens no inventário:", inventory.items);
-
-    // Filtrar itens usáveis que possuem quantidade maior que 0
-    const usableItems = [];
-
-    // Verificar cada item no inventário
-    for (const itemId in inventory.items) {
-      // Pular se o item não existir
-      if (!inventory.items[itemId]) continue;
-
-      const itemData = inventory.items[itemId];
-      console.log(
-        `Verificando item: ${itemId}, Quantidade: ${itemData.quantity}`
-      );
-
-      // Pular itens com quantidade zero ou negativa
-      if (!itemData.quantity || itemData.quantity <= 0) {
-        console.log(`Item ${itemId} tem quantidade 0 ou inválida, pulando`);
-        continue;
-      }
-
-      // Obter detalhes do item da loja
-      const item = storeItemsService.getItemById(itemId);
-      console.log("Detalhes do item:", item);
-
-      // Adicionar apenas itens usáveis que existem na loja
-      if (item && item.usavel) {
-        usableItems.push({
-          name: `${item.icon} ${item.name} (${itemData.quantity}x)`,
-          value: itemId,
-        });
-      }
-    }
-
-    console.log("Itens usáveis encontrados:", usableItems);
-
-    // Se não encontrou nenhum item usável
-    if (usableItems.length === 0) {
       return interaction.respond([
         {
-          name: "Você não possui itens usáveis no inventário",
+          name: "Você não possui itens no inventário",
           value: "no_items",
         },
       ]);
     }
 
-    // Filtrar as opções com base no texto digitado
-    const filtered = usableItems.filter((choice) =>
-      choice.name.toLowerCase().includes(focusedValue)
+    const inventoryItems = snapshot.val();
+    console.log("Itens encontrados no inventário:", inventoryItems);
+
+    // Filtrar itens usáveis com quantidade > 0
+    const usableItems = [];
+
+    for (const itemId in inventoryItems) {
+      const itemData = inventoryItems[itemId];
+
+      // Verificar se a quantidade é válida e maior que zero
+      if (
+        !itemData ||
+        typeof itemData.quantity === "undefined" ||
+        itemData.quantity <= 0
+      ) {
+        continue;
+      }
+
+      console.log(
+        `Verificando item ${itemId}, quantidade: ${itemData.quantity}`
+      );
+
+      // Obter detalhes do item da loja
+      const storeItem = storeItemsService.getItemById(itemId);
+
+      // Se o item existe na loja e é usável, adicionar à lista
+      if (storeItem && storeItem.usavel) {
+        usableItems.push({
+          name: `${storeItem.icon} ${storeItem.name} (${itemData.quantity}x)`,
+          value: itemId,
+        });
+        console.log(`Item usável adicionado: ${storeItem.name}`);
+      }
+    }
+
+    console.log(`Total de itens usáveis encontrados: ${usableItems.length}`);
+
+    // Se não houver itens usáveis
+    if (usableItems.length === 0) {
+      return interaction.respond([
+        {
+          name: "Você não possui itens usáveis no inventário",
+          value: "no_usable_items",
+        },
+      ]);
+    }
+
+    // Filtrar os itens com base no texto digitado pelo usuário
+    const filteredItems = usableItems.filter((item) =>
+      item.name.toLowerCase().includes(focusedValue)
     );
 
-    console.log("Itens filtrados:", filtered);
+    console.log(
+      `Itens filtrados por "${focusedValue}": ${filteredItems.length}`
+    );
 
-    // Limitar para 25 resultados e retornar
-    const responseItems = filtered.slice(0, 25);
+    // Limitar os resultados e responder
+    const responseItems = filteredItems.slice(0, 25);
     await interaction.respond(
       responseItems.length > 0
         ? responseItems
@@ -100,10 +111,10 @@ export async function autocomplete(interaction) {
           ]
     );
   } catch (error) {
-    console.error("Erro ao autocompletar items:", error);
+    console.error("Erro ao buscar itens para autocomplete:", error);
     await interaction.respond([
       {
-        name: "Erro ao carregar itens",
+        name: "Erro ao carregar seus itens",
         value: "error",
       },
     ]);
@@ -119,8 +130,13 @@ async function interactionHandler(interaction) {
 
     console.log(`Tentando usar item: ${itemId}`);
 
-    // Tratar casos especiais de itens não encontrados
-    if (itemId === "no_items" || itemId === "no_match" || itemId === "error") {
+    // Tratar casos especiais
+    if (
+      itemId === "no_items" ||
+      itemId === "no_usable_items" ||
+      itemId === "no_match" ||
+      itemId === "error"
+    ) {
       const embedErro = embedUtils.criarEmbedErro({
         usuario: interaction.user.username,
         titulo: "Sem Itens Disponíveis",
@@ -129,9 +145,10 @@ async function interactionHandler(interaction) {
       return interaction.editReply({ embeds: [embedErro] });
     }
 
-    // Verificar se o item existe na loja
+    // Verificar se o item existe na loja diretamente
     const item = storeItemsService.getItemById(itemId);
     console.log("Detalhes do item:", item);
+
     if (!item) {
       const embedErro = embedUtils.criarEmbedErro({
         usuario: interaction.user.username,
@@ -151,9 +168,12 @@ async function interactionHandler(interaction) {
       return interaction.editReply({ embeds: [embedErro] });
     }
 
-    // Verificar se o usuário possui o item
-    const hasItem = await inventoryService.hasItem(userId, itemId);
-    if (!hasItem) {
+    // Verificar diretamente no Firebase se o usuário possui o item
+    const database = getDatabase();
+    const itemRef = ref(database, `users/${userId}/inventory/items/${itemId}`);
+    const snapshot = await get(itemRef);
+
+    if (!snapshot.exists() || snapshot.val().quantity <= 0) {
       const embedErro = embedUtils.criarEmbedErro({
         usuario: interaction.user.username,
         titulo: "Item Não Encontrado",
@@ -163,31 +183,34 @@ async function interactionHandler(interaction) {
     }
 
     // Verificar se o item está em cooldown
-    const cooldownCheck = await inventoryService.checkItemCooldown(
-      userId,
-      itemId
-    );
-    if (cooldownCheck.emCooldown) {
-      const minutes = Math.floor(cooldownCheck.tempoRestante / 60000);
-      const seconds = Math.floor((cooldownCheck.tempoRestante % 60000) / 1000);
-      const embedErro = embedUtils.criarEmbedErro({
-        usuario: interaction.user.username,
-        titulo: "Item em Cooldown",
-        mensagem: `Você precisa esperar **${minutes}m ${seconds}s** para usar ${item.icon} ${item.name} novamente.`,
-      });
-      return interaction.editReply({ embeds: [embedErro] });
+    const itemData = snapshot.val();
+    if (itemData.lastUsed && item.cooldown) {
+      const now = Date.now();
+      const timeElapsed = now - itemData.lastUsed;
+
+      if (timeElapsed < item.cooldown) {
+        const tempoRestante = item.cooldown - timeElapsed;
+        const minutes = Math.floor(tempoRestante / 60000);
+        const seconds = Math.floor((tempoRestante % 60000) / 1000);
+
+        const embedErro = embedUtils.criarEmbedErro({
+          usuario: interaction.user.username,
+          titulo: "Item em Cooldown",
+          mensagem: `Você precisa esperar **${minutes}m ${seconds}s** para usar ${item.icon} ${item.name} novamente.`,
+        });
+        return interaction.editReply({ embeds: [embedErro] });
+      }
     }
 
     // Usar o item (atualizar inventário e debitar o uso)
-    const used = await inventoryService.useItem(userId, itemId);
-    if (!used) {
-      const embedErro = embedUtils.criarEmbedErro({
-        usuario: interaction.user.username,
-        titulo: "Erro ao Usar Item",
-        mensagem: `Não foi possível usar ${item.icon} ${item.name}.`,
-      });
-      return interaction.editReply({ embeds: [embedErro] });
-    }
+    // Atualizar diretamente no Firebase
+    const newQuantity = itemData.quantity - 1;
+    const updates = {
+      quantity: newQuantity,
+      lastUsed: Date.now(),
+    };
+
+    await update(itemRef, updates);
 
     // Aplicar o efeito do item
     let resultMessage = await applyItemEffect(userId, item);
@@ -245,6 +268,13 @@ async function applyItemEffect(userId, item) {
           item.effectValue * 100
         }%.`;
       }
+      case "reduce_cooldown_single": {
+        // Reduz o cooldown de um comando específico
+        // Primeiro, mostrar uma mensagem pedindo ao usuário para usar outro comando específico
+        return `Use o comando /reduzir-cooldown para selecionar qual comando você deseja reduzir em ${
+          item.effectValue * 100
+        }%.`;
+      }
       case "boost_work": {
         // Aumenta os ganhos do comando trabalhar por um período
         const userRef = ref(database, `users/${userId}/activeEffects`);
@@ -273,6 +303,30 @@ async function applyItemEffect(userId, item) {
           (item.effectValue - 1) * 100
         }% por ${hours} hora(s).`;
       }
+      case "boost_study": {
+        // Aumenta pontos ganhos no próximo estudo
+        const userRef = ref(database, `users/${userId}/activeEffects`);
+        await update(userRef, {
+          boost_study: {
+            multiplier: item.effectValue,
+            expiration: Date.now() + item.duration,
+          },
+        });
+        return `Seu próximo comando /estudar renderá ${item.effectValue}x mais pontos!`;
+      }
+      case "boost_exam": {
+        // Aumenta chances de passar no próximo exame
+        const userRef = ref(database, `users/${userId}/activeEffects`);
+        await update(userRef, {
+          boost_exam: {
+            bonus: item.effectValue,
+            expiration: Date.now() + item.duration,
+          },
+        });
+        return `Suas chances de passar no próximo exame aumentaram em ${
+          item.effectValue * 100
+        }%!`;
+      }
       case "vip_status": {
         // Aplica o status VIP
         const userRef = ref(database, `users/${userId}/activeEffects`);
@@ -287,6 +341,102 @@ async function applyItemEffect(userId, item) {
         return `Status VIP ativado por ${days} dia(s): redução de cooldowns em ${
           item.effectValue.cooldownReduction * 100
         }% e aumento de ganhos em ${item.effectValue.incomeBoost * 100}%.`;
+      }
+      case "vip_permanent": {
+        // Aplica status VIP permanente
+        const userRef = ref(database, `users/${userId}/activeEffects`);
+        await update(userRef, {
+          vip_permanent: {
+            cooldownReduction: item.effectValue.cooldownReduction,
+            incomeBoost: item.effectValue.incomeBoost,
+            activated: Date.now(),
+          },
+        });
+        return `Status VIP PERMANENTE ativado: redução de cooldowns em ${
+          item.effectValue.cooldownReduction * 100
+        }% e aumento de ganhos em ${item.effectValue.incomeBoost * 100}%.`;
+      }
+      case "reset_morality": {
+        // Redefine a reputação moral para neutro
+        const userRef = ref(database, `users/${userId}/reputation`);
+        await update(userRef, { moral: 0 });
+        return "Sua reputação moral foi redefinida para neutro (0).";
+      }
+      case "skip_education_level": {
+        // Pular um nível educacional
+        const userRef = ref(database, `users/${userId}/education`);
+        const snapshot = await get(userRef);
+
+        if (!snapshot.exists()) {
+          return "Não foi possível avançar seu nível educacional.";
+        }
+
+        const education = snapshot.val();
+        const currentLevel = education.currentLevel || "fundamental";
+
+        // Determinar próximo nível
+        let nextLevel;
+        switch (currentLevel) {
+          case "fundamental":
+            nextLevel = "medio";
+            break;
+          case "medio":
+            nextLevel = "superior";
+            break;
+          case "superior":
+            nextLevel = "pos";
+            break;
+          case "pos":
+            return "Você já alcançou o nível máximo de educação.";
+          default:
+            nextLevel = "medio";
+        }
+
+        // Atualizar nível educacional
+        const completedLevels = education.completedLevels || {};
+        completedLevels[currentLevel] = Date.now();
+
+        await update(userRef, {
+          currentLevel: nextLevel,
+          currentPoints: 0,
+          completedLevels: completedLevels,
+        });
+
+        return `Você avançou do nível educacional ${currentLevel} para ${nextLevel}!`;
+      }
+      case "reset_all_cooldowns": {
+        // Reseta todos os cooldowns
+        const userRef = ref(database, `users/${userId}/cooldowns`);
+        await update(userRef, null);
+        return "Todos os cooldowns foram removidos! Você pode usar todos os comandos imediatamente.";
+      }
+      case "double_income_lose_rep": {
+        // Dobra ganhos mas perde reputação
+        const userRef = ref(database, `users/${userId}`);
+        const snapshot = await get(userRef);
+
+        if (!snapshot.exists()) {
+          return "Não foi possível aplicar o efeito.";
+        }
+
+        // Ativar o boost de ganhos
+        await update(ref(database, `users/${userId}/activeEffects`), {
+          income_boost: {
+            multiplier: item.effectValue,
+            expiration: Date.now() + item.duration,
+          },
+        });
+
+        // Reduzir a reputação
+        const userData = snapshot.val();
+        const currentRep =
+          (userData.reputation && userData.reputation.moral) || 0;
+        await update(ref(database, `users/${userId}/reputation`), {
+          moral: currentRep > 0 ? 0 : currentRep - 50, // Se positiva, zera. Se negativa, reduz mais
+        });
+
+        const hours = Math.floor(item.duration / 3600000);
+        return `Pacto mágico ativado! Seus ganhos estão dobrados por ${hours} hora(s), mas sua reputação foi severamente afetada.`;
       }
       default:
         return "Este item não tem efeito definido.";
