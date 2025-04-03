@@ -1,4 +1,4 @@
-// usar.js
+// usar.js - Corrigido para mostrar corretamente os itens no autocomplete
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import inventoryService from "../services/inventory.js";
 import storeItemsService from "../services/store-items.js";
@@ -21,7 +21,7 @@ export async function execute(interaction) {
   await interactionHandler(interaction);
 }
 
-// Função para autocompletar os itens
+// Função para autocompletar os itens - corrigida
 export async function autocomplete(interaction) {
   const userId = interaction.user.id;
   const focusedValue = interaction.options.getFocused().toLowerCase();
@@ -38,21 +38,31 @@ export async function autocomplete(interaction) {
 
     // Filtrar itens usáveis que possuem quantidade maior que 0
     const usableItems = [];
+
+    // Verificar cada item no inventário
     for (const itemId in inventory.items) {
+      // Pular se o item não existir
+      if (!inventory.items[itemId]) continue;
+
       const itemData = inventory.items[itemId];
       console.log(
         `Verificando item: ${itemId}, Quantidade: ${itemData.quantity}`
       );
-      if (itemData.quantity <= 0) {
-        console.log(`Item ${itemId} tem quantidade 0, pulando`);
+
+      // Pular itens com quantidade zero ou negativa
+      if (!itemData.quantity || itemData.quantity <= 0) {
+        console.log(`Item ${itemId} tem quantidade 0 ou inválida, pulando`);
         continue;
       }
 
+      // Obter detalhes do item da loja
       const item = storeItemsService.getItemById(itemId);
       console.log("Detalhes do item:", item);
+
+      // Adicionar apenas itens usáveis que existem na loja
       if (item && item.usavel) {
         usableItems.push({
-          name: `${item.icon} ${item.name}`,
+          name: `${item.icon} ${item.name} (${itemData.quantity}x)`,
           value: itemId,
         });
       }
@@ -60,16 +70,43 @@ export async function autocomplete(interaction) {
 
     console.log("Itens usáveis encontrados:", usableItems);
 
+    // Se não encontrou nenhum item usável
+    if (usableItems.length === 0) {
+      return interaction.respond([
+        {
+          name: "Você não possui itens usáveis no inventário",
+          value: "no_items",
+        },
+      ]);
+    }
+
     // Filtrar as opções com base no texto digitado
     const filtered = usableItems.filter((choice) =>
       choice.name.toLowerCase().includes(focusedValue)
     );
 
     console.log("Itens filtrados:", filtered);
-    await interaction.respond(filtered.slice(0, 25));
+
+    // Limitar para 25 resultados e retornar
+    const responseItems = filtered.slice(0, 25);
+    await interaction.respond(
+      responseItems.length > 0
+        ? responseItems
+        : [
+            {
+              name: "Nenhum item corresponde à sua busca",
+              value: "no_match",
+            },
+          ]
+    );
   } catch (error) {
-    console.error("Erro na autocompletar items:", error);
-    await interaction.respond([]);
+    console.error("Erro ao autocompletar items:", error);
+    await interaction.respond([
+      {
+        name: "Erro ao carregar itens",
+        value: "error",
+      },
+    ]);
   }
 }
 
@@ -81,6 +118,16 @@ async function interactionHandler(interaction) {
     const itemId = interaction.options.getString("item");
 
     console.log(`Tentando usar item: ${itemId}`);
+
+    // Tratar casos especiais de itens não encontrados
+    if (itemId === "no_items" || itemId === "no_match" || itemId === "error") {
+      const embedErro = embedUtils.criarEmbedErro({
+        usuario: interaction.user.username,
+        titulo: "Sem Itens Disponíveis",
+        mensagem: "Você não possui itens usáveis em seu inventário.",
+      });
+      return interaction.editReply({ embeds: [embedErro] });
+    }
 
     // Verificar se o item existe na loja
     const item = storeItemsService.getItemById(itemId);

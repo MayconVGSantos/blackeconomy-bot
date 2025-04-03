@@ -1,4 +1,4 @@
-// tempo-espera.js - Corrigido para resolver o problema com o cooldown do comando estudar
+// tempo-espera.js - Corrigido para resolver o problema com o cooldown do comando estudar e exame
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import firebaseService from "../services/firebase.js";
 import config from "../../config/config.js";
@@ -69,21 +69,7 @@ export async function execute(interaction) {
       },
     ];
 
-    // Verificação especial para o comando estudar
-    // Consultando diretamente o último uso do comando estudar
-    let estudarLastUsage = null;
-    try {
-      const database = getDatabase();
-      const cooldownRef = ref(database, `users/${userId}/cooldowns/estudar`);
-      const snapshot = await get(cooldownRef);
-      if (snapshot.exists()) {
-        estudarLastUsage = snapshot.val();
-      }
-    } catch (error) {
-      console.error("Erro ao verificar último uso do comando estudar:", error);
-    }
-
-    // Verificar cooldown para cada comando
+    // Verificar cooldown para cada comando usando o serviço Firebase diretamente
     const cooldownResults = await Promise.all(
       commandsWithCooldown.map(async (cmd) => {
         // Determinar o tempo de cooldown
@@ -95,24 +81,7 @@ export async function execute(interaction) {
           cooldownTimeMs = cooldownTimeMinutes * 60000;
         }
 
-        // Usar a verificação especial para o comando estudar
-        if (cmd.name === "estudar" && estudarLastUsage) {
-          const now = Date.now();
-          const timeElapsed = now - estudarLastUsage;
-          const tempoRestante = cooldownTimeMs - timeElapsed;
-
-          // Se ainda está em cooldown
-          if (tempoRestante > 0) {
-            return {
-              ...cmd,
-              emCooldown: true,
-              tempoRestante: tempoRestante,
-              cooldownTotal: cooldownTimeMs,
-            };
-          }
-        }
-
-        // Para os outros comandos, usar a verificação normal
+        // Usar o serviço Firebase para verificar o cooldown
         const result = await firebaseService.checkCooldown(
           userId,
           cmd.name,
@@ -165,5 +134,5 @@ export async function execute(interaction) {
   }
 }
 
-// Importações necessárias para a verificação especial
-import { getDatabase, ref, get } from "firebase/database";
+// Remoção das importações duplicadas e desnecessárias
+// O código agora usa o serviço firebaseService.checkCooldown para todos os comandos
