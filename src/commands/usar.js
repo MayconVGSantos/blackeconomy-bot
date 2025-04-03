@@ -1,53 +1,75 @@
-// usar.js - Versão completamente corrigida
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
+// usar.js - Versão totalmente reformulada com interface interativa
+import {
+  SlashCommandBuilder,
+  EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  StringSelectMenuBuilder,
+  ComponentType,
+} from "discord.js";
 import inventoryService from "../services/inventory.js";
 import storeItemsService from "../services/store-items.js";
 import embedUtils from "../utils/embed.js";
-import firebaseService from "../services/firebase.js";
 import { getDatabase, ref, update, get } from "firebase/database";
+import { formatarTempoEspera } from "../utils/format.js";
 
 export const data = new SlashCommandBuilder()
   .setName("usar")
-  .setDescription("Usa um item do seu inventário")
-  .addStringOption((option) =>
-    option
-      .setName("item")
-      .setDescription("Item que você deseja usar")
-      .setRequired(true)
-      .setAutocomplete(true)
-  );
+  .setDescription("Usa um item do seu inventário");
 
 export async function execute(interaction) {
-  await interactionHandler(interaction);
+  try {
+    await interaction.deferReply();
+    const userId = interaction.user.id;
+
+    // Carregar o inventário do usuário
+    const usableItems = await loadUsableItems(userId);
+
+    // Se não tiver itens usáveis
+    if (Object.keys(usableItems).length === 0) {
+      const embedErro = embedUtils.criarEmbedErro({
+        usuario: interaction.user.username,
+        titulo: "Sem Itens Usáveis",
+        mensagem:
+          "Você não possui nenhum item usável em seu inventário.\nVisite a `/loja` para adquirir itens!",
+      });
+      return interaction.editReply({ embeds: [embedErro] });
+    }
+
+    // Mostrar a interface principal com os itens usáveis
+    return await showItemsInterface(interaction, userId, usableItems);
+  } catch (error) {
+    console.error("Erro ao executar comando usar:", error);
+    const embedErro = embedUtils.criarEmbedErro({
+      usuario: interaction.user.username,
+      titulo: "Erro no Comando",
+      mensagem:
+        "Ocorreu um erro ao processar o comando. Tente novamente mais tarde.",
+    });
+    return interaction.editReply({ embeds: [embedErro] });
+  }
 }
 
-// Função para autocompletar os itens - completamente revisada
-export async function autocomplete(interaction) {
-  const userId = interaction.user.id;
-  const focusedValue = interaction.options.getFocused().toLowerCase();
-
+/**
+ * Carrega todos os itens usáveis do inventário do usuário, agrupados por categoria
+ * @param {string} userId - ID do usuário
+ * @returns {Promise<Object>} - Itens usáveis agrupados por categoria
+ */
+async function loadUsableItems(userId) {
   try {
-    // Obter inventário diretamente do Firebase para garantir dados atualizados
     const database = getDatabase();
     const inventoryRef = ref(database, `users/${userId}/inventory/items`);
     const snapshot = await get(inventoryRef);
 
     if (!snapshot.exists()) {
-      console.log("Sem itens no inventário");
-      return interaction.respond([
-        {
-          name: "Você não possui itens no inventário",
-          value: "no_items",
-        },
-      ]);
+      return {};
     }
 
     const inventoryItems = snapshot.val();
-    console.log("Itens encontrados no inventário:", inventoryItems);
+    const usableItems = {};
 
-    // Filtrar itens usáveis com quantidade > 0
-    const usableItems = [];
-
+    // Agrupar itens por categoria
     for (const itemId in inventoryItems) {
       const itemData = inventoryItems[itemId];
 
@@ -60,94 +82,354 @@ export async function autocomplete(interaction) {
         continue;
       }
 
-      console.log(
-        `Verificando item ${itemId}, quantidade: ${itemData.quantity}`
-      );
-
       // Obter detalhes do item da loja
       const storeItem = storeItemsService.getItemById(itemId);
 
-      // Se o item existe na loja e é usável, adicionar à lista
+      // Se o item existe na loja e é usável
       if (storeItem && storeItem.usavel) {
-        usableItems.push({
-          name: `${storeItem.icon} ${storeItem.name} (${itemData.quantity}x)`,
-          value: itemId,
+        // Verificar cooldown
+        let emCooldown = false;
+        let tempoRestante = 0;
+
+        if (itemData.lastUsed && storeItem.cooldown) {
+          const now = Date.now();
+          const timeElapsed = now - itemData.lastUsed;
+
+          if (timeElapsed < storeItem.cooldown) {
+            emCooldown = true;
+            tempoRestante = storeItem.cooldown - timeElapsed;
+          }
+        }
+
+        // Adicionar à categoria correspondente
+        const category = storeItem.category || "outros";
+
+        if (!usableItems[category]) {
+          usableItems[category] = [];
+        }
+
+        usableItems[category].push({
+          id: itemId,
+          name: storeItem.name,
+          icon: storeItem.icon,
+          description: storeItem.description,
+          quantity: itemData.quantity,
+          emCooldown: emCooldown,
+          tempoRestante: tempoRestante,
+          tier: storeItem.tier || "regular",
         });
-        console.log(`Item usável adicionado: ${storeItem.name}`);
       }
     }
 
-    console.log(`Total de itens usáveis encontrados: ${usableItems.length}`);
+    // Ordenar itens dentro de cada categoria por tier e nome
+    for (const category in usableItems) {
+      usableItems[category].sort((a, b) => {
+        const tierOrder = {
+          básico: 1,
+          regular: 2,
+          premium: 3,
+          rare: 4,
+          legendary: 5,
+          deluxe: 6,
+          eternal: 7,
+        };
 
-    // Se não houver itens usáveis
-    if (usableItems.length === 0) {
-      return interaction.respond([
-        {
-          name: "Você não possui itens usáveis no inventário",
-          value: "no_usable_items",
-        },
-      ]);
+        const tierA = tierOrder[a.tier] || 2;
+        const tierB = tierOrder[b.tier] || 2;
+
+        if (tierA !== tierB) {
+          return tierA - tierB;
+        }
+
+        return a.name.localeCompare(b.name);
+      });
     }
 
-    // Filtrar os itens com base no texto digitado pelo usuário
-    const filteredItems = usableItems.filter((item) =>
-      item.name.toLowerCase().includes(focusedValue)
-    );
-
-    console.log(
-      `Itens filtrados por "${focusedValue}": ${filteredItems.length}`
-    );
-
-    // Limitar os resultados e responder
-    const responseItems = filteredItems.slice(0, 25);
-    await interaction.respond(
-      responseItems.length > 0
-        ? responseItems
-        : [
-            {
-              name: "Nenhum item corresponde à sua busca",
-              value: "no_match",
-            },
-          ]
-    );
+    return usableItems;
   } catch (error) {
-    console.error("Erro ao buscar itens para autocomplete:", error);
-    await interaction.respond([
-      {
-        name: "Erro ao carregar seus itens",
-        value: "error",
-      },
-    ]);
+    console.error("Erro ao carregar itens usáveis:", error);
+    return {};
   }
 }
 
-async function interactionHandler(interaction) {
-  try {
-    await interaction.deferReply();
+/**
+ * Exibe a interface principal com os itens usáveis
+ * @param {Interaction} interaction - Interação do Discord
+ * @param {string} userId - ID do usuário
+ * @param {Object} usableItems - Itens usáveis agrupados por categoria
+ * @returns {Promise<void>}
+ */
+async function showItemsInterface(
+  interaction,
+  userId,
+  usableItems,
+  selectedCategory = null
+) {
+  // Se nenhuma categoria selecionada, usar a primeira disponível
+  if (!selectedCategory) {
+    selectedCategory = Object.keys(usableItems)[0];
+  }
 
-    const userId = interaction.user.id;
-    const itemId = interaction.options.getString("item");
+  // Criar embed para mostrar os itens da categoria selecionada
+  const embed = new EmbedBuilder()
+    .setColor(getCategoryColor(selectedCategory))
+    .setTitle(`🧰 Usar Item - ${getCategoryDisplayName(selectedCategory)}`)
+    .setDescription(`Selecione um item para usar:`)
+    .setFooter({ text: `Solicitado por ${interaction.user.username}` })
+    .setTimestamp();
 
-    console.log(`Tentando usar item: ${itemId}`);
+  // Adicionar itens ao embed
+  const itemsInCategory = usableItems[selectedCategory] || [];
 
-    // Tratar casos especiais
-    if (
-      itemId === "no_items" ||
-      itemId === "no_usable_items" ||
-      itemId === "no_match" ||
-      itemId === "error"
-    ) {
-      const embedErro = embedUtils.criarEmbedErro({
-        usuario: interaction.user.username,
-        titulo: "Sem Itens Disponíveis",
-        mensagem: "Você não possui itens usáveis em seu inventário.",
+  if (itemsInCategory.length === 0) {
+    embed.addFields({
+      name: "Sem itens nesta categoria",
+      value: "Você não possui itens usáveis nesta categoria.",
+      inline: false,
+    });
+  } else {
+    let itemList = "";
+
+    itemsInCategory.forEach((item, index) => {
+      const statusIcon = item.emCooldown ? "🕒" : "✅";
+      let itemText = `**${index + 1}. ${item.icon} ${item.name}** (x${
+        item.quantity
+      }) ${statusIcon}\n`;
+      itemText += `└ ${item.description}\n`;
+
+      if (item.emCooldown) {
+        itemText += `└ Em cooldown: ${formatarTempoEspera(
+          item.tempoRestante
+        )}\n`;
+      }
+
+      itemList += itemText + "\n";
+    });
+
+    embed.setDescription(`Selecione um item para usar:\n\n${itemList}`);
+  }
+
+  // Criar componentes para interação
+  const components = [];
+
+  // 1. Menu de seleção de categoria
+  const categories = Object.keys(usableItems);
+  if (categories.length > 0) {
+    const categoryMenu = new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId("usar_category")
+        .setPlaceholder("Selecione uma categoria")
+        .addOptions(
+          categories.map((cat) => {
+            return {
+              label: getCategoryDisplayName(cat),
+              value: cat,
+              emoji: getCategoryEmoji(cat),
+              default: cat === selectedCategory,
+            };
+          })
+        )
+    );
+
+    components.push(categoryMenu);
+  }
+
+  // 2. Botões para usar os itens (máximo 5 por linha, máximo 2 linhas)
+  const itemButtons = [];
+  const itemsToShow = Math.min(itemsInCategory.length, 10);
+
+  for (let i = 0; i < itemsToShow; i++) {
+    const item = itemsInCategory[i];
+    const buttonDisabled = item.emCooldown || item.quantity <= 0;
+
+    itemButtons.push(
+      new ButtonBuilder()
+        .setCustomId(`usar_item_${item.id}`)
+        .setLabel(`${i + 1}. ${item.name}`)
+        .setStyle(buttonDisabled ? ButtonStyle.Secondary : ButtonStyle.Primary)
+        .setEmoji(item.icon)
+        .setDisabled(buttonDisabled)
+    );
+  }
+
+  // Dividir os botões em linhas de no máximo 5
+  for (let i = 0; i < itemButtons.length; i += 5) {
+    const row = new ActionRowBuilder();
+    const buttonsSlice = itemButtons.slice(i, i + 5);
+    row.addComponents(buttonsSlice);
+    components.push(row);
+  }
+
+  // 3. Botões de navegação
+  const navigationRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("usar_close")
+      .setLabel("Fechar")
+      .setStyle(ButtonStyle.Danger)
+      .setEmoji("❌"),
+    new ButtonBuilder()
+      .setCustomId("usar_refresh")
+      .setLabel("Atualizar")
+      .setStyle(ButtonStyle.Secondary)
+      .setEmoji("🔄"),
+    new ButtonBuilder()
+      .setCustomId("usar_inventory")
+      .setLabel("Ver Inventário")
+      .setStyle(ButtonStyle.Success)
+      .setEmoji("🎒")
+  );
+
+  components.push(navigationRow);
+
+  // Enviar ou atualizar a mensagem
+  const message = await interaction.editReply({
+    embeds: [embed],
+    components: components,
+  });
+
+  // Criar coletor para os botões e menus
+  const collector = message.createMessageComponentCollector({
+    componentType: ComponentType.Button,
+    time: 300000, // 5 minutos
+  });
+
+  const menuCollector = message.createMessageComponentCollector({
+    componentType: ComponentType.StringSelect,
+    time: 300000, // 5 minutos
+  });
+
+  // Tratar interações com os botões
+  collector.on("collect", async (i) => {
+    if (i.user.id !== userId) {
+      await i.reply({
+        content: "Você não pode usar estes controles.",
+        ephemeral: true,
       });
-      return interaction.editReply({ embeds: [embedErro] });
+      return;
     }
 
-    // Verificar se o item existe na loja diretamente
+    const customId = i.customId;
+
+    // Fechar a interface
+    if (customId === "usar_close") {
+      const closedEmbed = new EmbedBuilder()
+        .setColor(0x808080)
+        .setTitle("Interface Fechada")
+        .setDescription("Você fechou a interface de uso de itens.")
+        .setFooter({ text: `Fechado por ${i.user.username}` })
+        .setTimestamp();
+
+      await i.update({ embeds: [closedEmbed], components: [] });
+      collector.stop();
+      menuCollector.stop();
+      return;
+    }
+
+    // Atualizar a interface
+    if (customId === "usar_refresh") {
+      await i.deferUpdate();
+      const refreshedItems = await loadUsableItems(userId);
+      await showItemsInterface(
+        interaction,
+        userId,
+        refreshedItems,
+        selectedCategory
+      );
+      collector.stop();
+      menuCollector.stop();
+      return;
+    }
+
+    // Ver inventário
+    if (customId === "usar_inventory") {
+      await i.reply({
+        content: "Use o comando `/inventario` para ver todos os seus itens!",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    // Usar um item
+    if (customId.startsWith("usar_item_")) {
+      const itemId = customId.replace("usar_item_", "");
+      await i.deferUpdate();
+      await useItem(interaction, userId, itemId);
+      collector.stop();
+      menuCollector.stop();
+      return;
+    }
+  });
+
+  // Tratar interações com os menus
+  menuCollector.on("collect", async (i) => {
+    if (i.user.id !== userId) {
+      await i.reply({
+        content: "Você não pode usar estes controles.",
+        ephemeral: true,
+      });
+      return;
+    }
+
+    if (i.customId === "usar_category") {
+      const newCategory = i.values[0];
+      await i.deferUpdate();
+      await showItemsInterface(interaction, userId, usableItems, newCategory);
+      collector.stop();
+      menuCollector.stop();
+    }
+  });
+
+  // Finalizar os coletores ao expirar o tempo
+  collector.on("end", async (collected, reason) => {
+    if (reason === "time") {
+      try {
+        // Desativar todos os componentes
+        const disabledComponents = components.map((row) => {
+          const newRow = new ActionRowBuilder();
+          row.components.forEach((component) => {
+            if (component.type === ComponentType.Button) {
+              newRow.addComponents(
+                ButtonBuilder.from(component).setDisabled(true)
+              );
+            } else if (component.type === ComponentType.StringSelect) {
+              newRow.addComponents(
+                StringSelectMenuBuilder.from(component)
+                  .setDisabled(true)
+                  .setPlaceholder("Menu expirado")
+              );
+            }
+          });
+          return newRow;
+        });
+
+        const timeoutEmbed = EmbedBuilder.from(embed)
+          .setTitle("🧰 Usar Item - Expirado")
+          .setDescription(
+            "A interface de uso de itens expirou. Use `/usar` novamente para reabri-la."
+          );
+
+        await interaction.editReply({
+          embeds: [timeoutEmbed],
+          components: disabledComponents,
+        });
+      } catch (error) {
+        console.error("Erro ao desativar componentes:", error);
+      }
+    }
+  });
+}
+
+/**
+ * Usa o item selecionado
+ * @param {Interaction} interaction - Interação do Discord
+ * @param {string} userId - ID do usuário
+ * @param {string} itemId - ID do item a ser usado
+ * @returns {Promise<void>}
+ */
+async function useItem(interaction, userId, itemId) {
+  try {
+    // Verificar se o item existe na loja
     const item = storeItemsService.getItemById(itemId);
-    console.log("Detalhes do item:", item);
 
     if (!item) {
       const embedErro = embedUtils.criarEmbedErro({
@@ -155,7 +437,7 @@ async function interactionHandler(interaction) {
         titulo: "Item Não Encontrado",
         mensagem: "O item que você tentou usar não existe.",
       });
-      return interaction.editReply({ embeds: [embedErro] });
+      return interaction.editReply({ embeds: [embedErro], components: [] });
     }
 
     // Verificar se o item é usável
@@ -165,7 +447,7 @@ async function interactionHandler(interaction) {
         titulo: "Item Não Usável",
         mensagem: `${item.icon} ${item.name} não é um item que pode ser usado.`,
       });
-      return interaction.editReply({ embeds: [embedErro] });
+      return interaction.editReply({ embeds: [embedErro], components: [] });
     }
 
     // Verificar diretamente no Firebase se o usuário possui o item
@@ -179,7 +461,7 @@ async function interactionHandler(interaction) {
         titulo: "Item Não Encontrado",
         mensagem: `Você não possui ${item.icon} ${item.name} em seu inventário.`,
       });
-      return interaction.editReply({ embeds: [embedErro] });
+      return interaction.editReply({ embeds: [embedErro], components: [] });
     }
 
     // Verificar se o item está em cooldown
@@ -198,12 +480,11 @@ async function interactionHandler(interaction) {
           titulo: "Item em Cooldown",
           mensagem: `Você precisa esperar **${minutes}m ${seconds}s** para usar ${item.icon} ${item.name} novamente.`,
         });
-        return interaction.editReply({ embeds: [embedErro] });
+        return interaction.editReply({ embeds: [embedErro], components: [] });
       }
     }
 
     // Usar o item (atualizar inventário e debitar o uso)
-    // Atualizar diretamente no Firebase
     const newQuantity = itemData.quantity - 1;
     const updates = {
       quantity: newQuantity,
@@ -220,25 +501,90 @@ async function interactionHandler(interaction) {
       .setColor(0x00ff00)
       .setTitle(`${item.icon} Item Usado com Sucesso`)
       .setDescription(`Você usou **${item.name}**!`)
-      .addFields({ name: "📋 Efeito", value: resultMessage, inline: false })
+      .addFields({
+        name: "📋 Efeito",
+        value: resultMessage,
+        inline: false,
+      })
+      .addFields({
+        name: "🔄 Quantidade Restante",
+        value: `${newQuantity}x ${item.name}`,
+        inline: true,
+      })
       .setFooter({ text: `Solicitado por ${interaction.user.username}` })
       .setTimestamp();
 
-    return interaction.editReply({ embeds: [embedSucesso] });
+    // Botão para voltar ao menu de itens
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("voltar_menu")
+        .setLabel("Voltar ao Menu")
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji("🔙")
+    );
+
+    const message = await interaction.editReply({
+      embeds: [embedSucesso],
+      components: [row],
+    });
+
+    // Coletor para o botão de voltar
+    const collector = message.createMessageComponentCollector({
+      componentType: ComponentType.Button,
+      time: 60000, // 1 minuto
+    });
+
+    collector.on("collect", async (i) => {
+      if (i.user.id !== userId) {
+        await i.reply({
+          content: "Você não pode usar este botão.",
+          ephemeral: true,
+        });
+        return;
+      }
+
+      if (i.customId === "voltar_menu") {
+        await i.deferUpdate();
+        const refreshedItems = await loadUsableItems(userId);
+        if (Object.keys(refreshedItems).length > 0) {
+          await showItemsInterface(interaction, userId, refreshedItems);
+        } else {
+          const semItensEmbed = embedUtils.criarEmbedErro({
+            usuario: interaction.user.username,
+            titulo: "Sem Itens Usáveis",
+            mensagem:
+              "Você não possui mais itens usáveis em seu inventário.\nVisite a `/loja` para adquirir itens!",
+          });
+          await interaction.editReply({
+            embeds: [semItensEmbed],
+            components: [],
+          });
+        }
+        collector.stop();
+      }
+    });
+
+    collector.on("end", async (collected, reason) => {
+      if (reason === "time" && message.editable) {
+        const newRow = new ActionRowBuilder().addComponents(
+          ButtonBuilder.from(row.components[0]).setDisabled(true)
+        );
+        await interaction.editReply({ components: [newRow] });
+      }
+    });
   } catch (error) {
-    console.error("Erro ao executar comando usar:", error);
+    console.error("Erro ao usar item:", error);
     const embedErro = embedUtils.criarEmbedErro({
       usuario: interaction.user.username,
-      titulo: "Erro no Comando",
-      mensagem:
-        "Ocorreu um erro ao processar o comando. Tente novamente mais tarde.",
+      titulo: "Erro ao Usar Item",
+      mensagem: "Ocorreu um erro ao usar o item. Tente novamente mais tarde.",
     });
-    return interaction.editReply({ embeds: [embedErro] });
+    return interaction.editReply({ embeds: [embedErro], components: [] });
   }
 }
 
 /**
- * Aplica o efeito do item usado e retorna uma mensagem descritiva.
+ * Aplica o efeito do item usado
  * @param {string} userId - ID do usuário
  * @param {Object} item - Objeto do item
  * @returns {Promise<string>} - Mensagem de resultado
@@ -434,7 +780,6 @@ async function applyItemEffect(userId, item) {
         await update(ref(database, `users/${userId}/reputation`), {
           moral: currentRep > 0 ? 0 : currentRep - 50, // Se positiva, zera. Se negativa, reduz mais
         });
-
         const hours = Math.floor(item.duration / 3600000);
         return `Pacto mágico ativado! Seus ganhos estão dobrados por ${hours} hora(s), mas sua reputação foi severamente afetada.`;
       }
@@ -443,6 +788,57 @@ async function applyItemEffect(userId, item) {
     }
   } catch (error) {
     console.error("Erro ao aplicar efeito do item:", error);
-    throw error;
+    return "Erro ao aplicar o efeito do item.";
   }
+}
+
+/**
+ * Obtém a cor associada a uma categoria
+ * @param {string} category - Nome da categoria
+ * @returns {number} - Código de cor hexadecimal
+ */
+function getCategoryColor(category) {
+  const colors = {
+    casino: 0xffd700, // Dourado
+    consumiveis: 0x9966cc, // Roxo
+    vip: 0x4169e1, // Azul real
+    especiais: 0xff4500, // Laranja avermelhado
+    outros: 0x808080, // Cinza
+  };
+
+  return colors[category] || 0x0099ff;
+}
+
+/**
+ * Obtém o nome de exibição de uma categoria
+ * @param {string} category - Nome da categoria
+ * @returns {string} - Nome de exibição
+ */
+function getCategoryDisplayName(category) {
+  const displayNames = {
+    casino: "🎰 Cassino",
+    consumiveis: "🧪 Consumíveis",
+    vip: "✨ Status VIP",
+    especiais: "🌟 Itens Especiais",
+    outros: "📦 Outros Itens",
+  };
+
+  return displayNames[category] || category;
+}
+
+/**
+ * Obtém o emoji associado a uma categoria
+ * @param {string} category - Nome da categoria
+ * @returns {string} - Emoji
+ */
+function getCategoryEmoji(category) {
+  const emojis = {
+    casino: "🎰",
+    consumiveis: "🧪",
+    vip: "✨",
+    especiais: "🌟",
+    outros: "📦",
+  };
+
+  return emojis[category] || "📦";
 }
