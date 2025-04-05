@@ -451,14 +451,27 @@ async function withdrawMoney(userId, amount) {
     if (amount > depositInfo.availableAmount) {
       // Não tem fundos suficientes disponíveis para saque
       if (depositInfo.nextAvailableTime) {
+        // Calcular tempo restante em minutos
         const waitTime = Math.ceil((depositInfo.nextAvailableTime - Date.now()) / 60000);
+        
+        // Formatar o horário de liberação corretamente com fuso horário Brasil (GMT-3)
+        const availableDate = new Date(depositInfo.nextAvailableTime);
+        // Configurar para usar o fuso horário do Brasil
+        const options = { 
+          timeZone: 'America/Sao_Paulo',
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false
+        };
+        const formattedTime = availableDate.toLocaleTimeString('pt-BR', options);
         
         return {
           success: false,
-          message: `Você só tem ${formatarDinheiro(depositInfo.availableAmount)} disponíveis para saque. O próximo depósito estará disponível em ${waitTime} minutos.`,
+          message: `Você só tem ${formatarDinheiro(depositInfo.availableAmount)} disponíveis para saque. O próximo depósito estará disponível em ${waitTime} minutos (às ${formattedTime}).`,
           cooldown: true,
           availableAmount: depositInfo.availableAmount,
-          nextAvailableTime: depositInfo.nextAvailableTime
+          nextAvailableTime: depositInfo.nextAvailableTime,
+          formattedTime: formattedTime
         };
       } else {
         return {

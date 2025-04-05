@@ -69,4 +69,28 @@ function formatarTempoEspera(tempoRestanteMs) {
   return resultado;
 }
 
-export { formatarDinheiro, formatarNumero, formatarTempoEspera };
+/**
+ * Formata uma data no fuso horário do Brasil
+ * @param {Date|number} date - A data para formatar
+ * @param {boolean} includeDate - Se deve incluir a data ou só a hora
+ * @returns {string} Data formatada
+ */
+function formatarDataBrasil(date, includeDate = false) {
+  const dateObj = new Date(date);
+  const options = { 
+    timeZone: 'America/Sao_Paulo',
+    hour: '2-digit', 
+    minute: '2-digit'
+  };
+  
+  if (includeDate) {
+    options.day = '2-digit';
+    options.month = '2-digit';
+    options.year = 'numeric';
+    return dateObj.toLocaleString('pt-BR', options);
+  }
+  
+  return dateObj.toLocaleTimeString('pt-BR', options);
+}
+
+export { formatarDinheiro, formatarNumero, formatarTempoEspera, formatarDataBrasil };

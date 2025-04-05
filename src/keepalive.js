@@ -25,7 +25,7 @@ const server = http.createServer((req, res) => {
       <body>
         <h1>BlackEconomy Bot</h1>
         <p class="status">✅ Online</p>
-        <p class="uptime">Ativo desde: ${new Date().toLocaleString()}</p>
+        <p class="uptime">Ativo desde: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>
       </body>
     </html>
   `;
@@ -37,7 +37,22 @@ const server = http.createServer((req, res) => {
 // Configurar intervalo para fazer ping em si mesmo (útil para plataformas como Replit)
 const keepAlive = () => {
   setInterval(() => {
-    console.log(`🔄 Keep-alive ping em ${new Date().toLocaleString()}`);
+    // Obter data atual
+    const now = new Date();
+    
+    // Formatar com fuso horário Brasil (GMT-3)
+    const options = { 
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric', 
+      month: 'numeric', 
+      day: 'numeric', 
+      hour: 'numeric', 
+      minute: 'numeric', 
+      second: 'numeric' 
+    };
+    
+    const brasilTime = now.toLocaleString('pt-BR', options);
+    console.log(`🔄 Keep-alive ping em ${brasilTime}`);
   }, 5 * 60 * 1000); // A cada 5 minutos
 };
 
