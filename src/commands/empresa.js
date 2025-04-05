@@ -11,7 +11,7 @@ import businessService from "../services/business.js";
 import embedUtils from "../utils/embed.js";
 import { formatarDinheiro } from "../utils/format.js";
 
-export const data = new SlashCommandBuilder()
+const data = new SlashCommandBuilder()
   .setName("empresa")
   .setDescription("Sistema de empresas - ganhe dinheiro passivamente")
   .addSubcommand((subcommand) =>
@@ -35,7 +35,7 @@ export const data = new SlashCommandBuilder()
       .setDescription("Melhore sua empresa para aumentar os lucros")
   );
 
-export async function execute(interaction) {
+async function execute(interaction) {
   const userId = interaction.user.id;
   const subcommand = interaction.options.getSubcommand();
 
@@ -537,3 +537,5 @@ async function handleUpgradeBusiness(interaction, userId) {
     }
   });
 }
+
+export { data, execute };
