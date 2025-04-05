@@ -16,6 +16,7 @@ import embedUtils from "../utils/embed.js";
 import { formatarDinheiro } from "../utils/format.js";
 // Importando as funções do Firebase no início do arquivo
 import { getDatabase, ref, get } from "firebase/database";
+import businessService from "../services/business.js";
 
 export const data = new SlashCommandBuilder()
   .setName("perfil")
@@ -98,7 +99,7 @@ export async function execute(interaction) {
         break;
       case "geral":
       default:
-        embed = createGeneralEmbed(
+        embed = await createGeneralEmbed(
           targetUser,
           userData,
           rankingInfo,
@@ -207,7 +208,7 @@ export async function execute(interaction) {
             break;
           case "geral":
           default:
-            newEmbed = createGeneralEmbed(
+            newEmbed = await createGeneralEmbed(
               targetUser,
               userData,
               rankingInfo,
@@ -259,7 +260,7 @@ export async function execute(interaction) {
 /**
  * Cria o embed da visão geral do perfil
  */
-function createGeneralEmbed(
+async function createGeneralEmbed(
   targetUser,
   userData,
   rankingInfo,
@@ -270,6 +271,9 @@ function createGeneralEmbed(
   educationInfo,
   badge
 ) {
+  // Obter informações da empresa
+  const businessInfo = await businessService.getBusinessInfo(targetUser.id);
+  
   // Criar embed principal
   const embed = new EmbedBuilder()
     .setColor(0x4b0082) // Índigo (cor mais rica)
@@ -348,6 +352,15 @@ function createGeneralEmbed(
       name: "🏫 Diplomas",
       value: `${educationInfo.completed.length} formação(ões) concluída(s)`,
       inline: true,
+    });
+  }
+
+  // Adicionar campo de empresa se tiver uma
+  if (businessInfo.hasBusiness) {
+    embed.addFields({
+      name: "🏢 Empresa",
+      value: `${businessInfo.name} (Nível ${businessInfo.level})`,
+      inline: true
     });
   }
 

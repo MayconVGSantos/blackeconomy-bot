@@ -401,6 +401,32 @@ class EmbedUtils {
       .setFooter({ text: `Transferência realizada por ${remetente}` })
       .setTimestamp();
   }
+
+  /**
+   * Cria um embed para o sistema de empresas
+   * @param {Object} options - Opções do embed
+   * @returns {EmbedBuilder} - Embed criado
+   */
+  criarEmbedEmpresa({
+    usuario,
+    avatarURL,
+    conteudo,
+    empresa,
+    nivel,
+    lucro,
+    proximaColeta
+  }) {
+    return new EmbedBuilder()
+      .setColor(0x0099FF)
+      .setTitle(`🏢 ${empresa} (Nível ${nivel})`)
+      .setDescription(conteudo)
+      .addFields(
+        { name: "💵 Lucro", value: lucro, inline: true },
+        { name: "⏳ Próxima Coleta", value: proximaColeta, inline: true }
+      )
+      .setThumbnail(avatarURL)
+      .setTimestamp();
+  }
 }
 
 // Criar uma instância e exportá-la como padrão (default export)
