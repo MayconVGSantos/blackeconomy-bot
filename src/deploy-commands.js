@@ -30,7 +30,7 @@ async function loadCommands() {
 
   for (const file of commandFiles) {
     try {
-      // Correção do caminho para importação correta no Windows com ESM
+      // Correção do caminho para importação correta no Widows com ESM
       const filePath = new URL(
         `file://${join(__dirname, "commands", file).replace(/\\/g, "/")}`
       ).href;
