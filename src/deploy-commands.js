@@ -5,7 +5,7 @@ import { dirname, join } from "path";
 import { readdirSync } from "fs";
 import dotenv from "dotenv";
 
-// Carregue o .env primeiro para garantir que as variáveis de ambiente estejam disponíveis
+// Carregue o .env primeiro para garantir que as variveis de ambiente estejam disponíveis
 dotenv.config();
 
 // Depois de carregar o .env, importe o config
