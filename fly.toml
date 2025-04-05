@@ -1,16 +1,14 @@
-# fly.toml app configuration file generated for blackeconomy-bot on 2025-03-31T05:43:43Z
+# fly.toml app configuration file generated for blackeconomy-bot
 
 app = "blackeconomy-bot"
 primary_region = "ams"
 
 [build]
   dockerfile = "Dockerfile"
-  cmd = ["sh", "-c", "node src/deploy-commands.js && node src/index.js"]
 
 [env]
   PORT = "8080"
-  # Don't put actual secrets here for security reasons
-  # This is just for non-sensitive config
+  # Você pode adicionar outras variáveis não sensíveis aqui
 
 [[services]]
   internal_port = 8080
@@ -24,6 +22,16 @@ primary_region = "ams"
   [[services.ports]]
     handlers = ["tls", "http"]
     port = 443
+
+  # ✅ Health Check HTTP
+  [[services.checks]]
+    type = "http"
+    interval = "15s"
+    timeout = "10s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/health"
+    protocol = "http"
 
 [[vm]]
   memory = "1gb"

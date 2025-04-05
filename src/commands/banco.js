@@ -69,11 +69,62 @@ export const data = new SlashCommandBuilder()
       .setDescription("Consulte seus depósitos e seus respectivos cooldowns")
   );
 
-// Agendar tarefa diária para cobrar taxa bancária
-schedule.scheduleJob(`0 ${BANK_CONFIG.DAILY_FEE_HOUR} * * *`, async function() {
+// Adicione este código onde você configura seu node-schedule
+import { getDatabase, ref, get, set } from "firebase/database";
+
+// Função para garantir que apenas uma instância do schedule execute a tarefa
+async function runScheduledTaskWithLock(taskName, taskFunction) {
+  const database = getDatabase();
+  const lockRef = ref(database, `system/scheduleLocks/${taskName}`);
+  
+  try {
+    // Verificar se já existe um lock
+    const snapshot = await get(lockRef);
+    const now = Date.now();
+    
+    if (snapshot.exists()) {
+      const lockData = snapshot.val();
+      
+      // Se o lock existir mas tiver expirado (30 minutos), podemos adquirir novamente
+      if (now - lockData.timestamp > 30 * 60 * 1000) {
+        console.log(`Lock expirado para ${taskName}, adquirindo novo lock`);
+      } else {
+        console.log(`Tarefa ${taskName} já está sendo executada por outra instância`);
+        return;
+      }
+    }
+    
+    // Adquirir o lock
+    await set(lockRef, { 
+      timestamp: now,
+      instance: process.env.FLY_ALLOC_ID || 'local' // Identificador da instância
+    });
+    
+    console.log(`Lock adquirido para tarefa ${taskName}`);
+    
+    // Executar a função
+    await taskFunction();
+    
+    // Liberar o lock após conclusão
+    await set(lockRef, null);
+    console.log(`Lock liberado para tarefa ${taskName}`);
+    
+  } catch (error) {
+    console.error(`Erro ao executar tarefa agendada ${taskName}:`, error);
+    // Ainda tentamos liberar o lock em caso de erro
+    try {
+      await set(lockRef, null);
+    } catch (unlockError) {
+      console.error(`Erro ao liberar lock para ${taskName}:`, unlockError);
+    }
+  }
+}
+
+// Use esta função no seu schedule
+// Por exemplo, para a cobrança de taxa bancária:
+schedule.scheduleJob(`0 ${BANK_CONFIG.DAILY_FEE_HOUR} * * *`, function() {
   console.log("[BANCO] Iniciando cobrança da taxa diária...");
-  await chargeDailyFee();
-  console.log("[BANCO] Cobrança da taxa diária concluída");
+  runScheduledTaskWithLock('bankDailyFee', chargeDailyFee);
 });
 
 /**

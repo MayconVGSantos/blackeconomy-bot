@@ -3,6 +3,13 @@ import http from "http";
 
 // Cria um servidor HTTP básico para manter a aplicação ativa
 const server = http.createServer((req, res) => {
+  // Adicione esta rota específica para health check
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok' }));
+    return;
+  }
+
   // Adicionar informações básicas sobre o estado do bot
   const statusHTML = `
     <!DOCTYPE html>
