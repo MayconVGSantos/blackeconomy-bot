@@ -3,12 +3,13 @@ name: Deploy to Fly.io
 on:
   push:
     branches:
-      - main
+      - main  # Dispara o deploy apenas quando houver push na branch 'main'
 
 jobs:
   deploy:
     name: 🚀 Deploy
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # Evita que o job trave indefinidamente
 
     steps:
       - name: ⬇️ Checkout do código
@@ -17,7 +18,13 @@ jobs:
       - name: 🔧 Instalar Fly CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
 
+      - name: 📦 Verificar versão do Fly CLI
+        run: flyctl version
+
       - name: 🚀 Deploy para Fly.io
-        run: flyctl deploy --remote-only --yes
+        run: flyctl deploy --remote-only --verbose --yes
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+      - name: ✅ Finalização do Deploy
+        run: echo "Deploy concluído com sucesso para a Fly.io!"
