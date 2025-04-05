@@ -6,6 +6,7 @@ import {
   ButtonStyle,
   ComponentType
 } from "discord.js";
+// Importe todas as funções do Firebase aqui no topo
 import { getDatabase, ref, get, set, update, push } from "firebase/database";
 import firebaseService from "../services/firebase.js";
 import embedUtils from "../utils/embed.js";
@@ -68,9 +69,6 @@ export const data = new SlashCommandBuilder()
       .setName("depositos")
       .setDescription("Consulte seus depósitos e seus respectivos cooldowns")
   );
-
-// Adicione este código onde você configura seu node-schedule
-import { getDatabase, ref, get, set } from "firebase/database";
 
 // Função para garantir que apenas uma instância do schedule execute a tarefa
 async function runScheduledTaskWithLock(taskName, taskFunction) {
