@@ -42,6 +42,11 @@ server.listen(PORT, () => {
 
   // Iniciar o sistema de keep-alive
   keepAlive();
+
+  // Verificação do ambiente
+  console.log("Environment check:");
+  console.log(`DISCORD_TOKEN present: ${process.env.DISCORD_TOKEN ? "Yes" : "No"}`);
+  console.log(`CLIENT_ID present: ${process.env.CLIENT_ID ? "Yes" : "No"}`);
 });
 
 // Tratamento de erros do servidor

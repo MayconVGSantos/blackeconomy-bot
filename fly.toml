@@ -5,9 +5,12 @@ primary_region = "ams"
 
 [build]
   dockerfile = "Dockerfile"
+  cmd = ["sh", "-c", "node src/deploy-commands.js && node src/index.js"]
 
 [env]
   PORT = "8080"
+  # Don't put actual secrets here for security reasons
+  # This is just for non-sensitive config
 
 [[services]]
   internal_port = 8080

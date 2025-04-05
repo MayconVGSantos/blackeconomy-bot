@@ -16,5 +16,8 @@ COPY . .
 # Expõe a porta usada pelo bot
 EXPOSE 8080
 
-# Inicia o bot (caminho corrigido!)
-CMD ["sh", "-c", "node src/deploy-commands.js && node src/index.js"]
+# Create a start.sh script
+COPY start.sh .
+RUN chmod +x start.sh
+
+CMD ["./start.sh"]
